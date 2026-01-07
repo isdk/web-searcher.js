@@ -169,6 +169,37 @@ await google.search('test', {
 
 如果用户过滤掉了结果，自动分页逻辑会启动以抓取更多页面来满足请求的 limit。
 
+### 标准化搜索选项
+
+在调用 `search()` 时，您可以提供标准化的选项，搜索引擎会将其映射到特定的参数：
+
+```typescript
+const results = await google.search('open source', {
+  limit: 20,
+  timeRange: 'month',       // 'day', 'week', 'month', 'year'
+  // 或自定义范围:
+  // timeRange: { from: '2023-01-01', to: '2023-12-31' },
+  category: 'news',         // 'all', 'images', 'videos', 'news'
+  region: 'US',             // ISO 3166-1 alpha-2
+  language: 'en',           // ISO 639-1
+  safeSearch: 'strict',     // 'off', 'moderate', 'strict'
+});
+```
+
+要在您自己的引擎中支持这些选项，请重写 `formatOptions` 方法：
+
+```typescript
+protected override formatOptions(options: SearchOptions): Record<string, any> {
+  const vars: Record<string, any> = {};
+  if (options.timeRange === 'day') vars.tbs = 'qdr:d';
+  // ... 将其他选项映射到模板变量
+  return vars;
+}
+```
+
+然后在您的 `template.url` 中使用这些变量：
+`url: 'https://www.google.com/search?q=${query}&tbs=${tbs}'`
+
 ### 自定义变量
 
 您可以向 `search()` 传递自定义变量并在模板中使用它们。

@@ -99,21 +99,25 @@ export abstract class WebSearcher extends FetchSession {
     // However, the 'actions' and 'url' will be driven by the loop below.
 
     while (allResults.length < limit) {
-      // 1. Calculate variables for the current page
+      // 1. Calculate engine-specific variables
+      const engineVars = this.formatOptions(options);
+
+      // 2. Calculate variables for the current page
       const offset = startValue + (page * increment);
       const variables = {
         ...options,
+        ...engineVars,
         query,
         page: page + startValue,
         offset,
         limit
       };
 
-      // 2. Inject variables into the template
+      // 3. Inject variables into the template
       // This creates a new options object with resolved strings (e.g., url with query)
       const currentOptions = injectVariables(this.template, variables);
 
-      // 3. Prepare Actions
+      // 4. Prepare Actions
       const actions: FetchActionOptions[] = [];
 
       // Handling navigation logic
@@ -135,7 +139,7 @@ export abstract class WebSearcher extends FetchSession {
         actions.push(...templateActions);
       }
 
-      // 4. Execute the fetch actions
+      // 5. Execute the fetch actions
       // Note: We use executeAll from FetchSession (this)
       // We might need to handle 'engine' switching if the template requires a specific engine
       // that differs from the session default. FetchSession.execute handles this via maybeCreateEngine.
@@ -149,7 +153,7 @@ export abstract class WebSearcher extends FetchSession {
 
       const { outputs } = await this.executeAll(actions);
 
-      // 5. Extract and transform results
+      // 6. Extract and transform results
       const context: SearchContext = { query, page, limit: options.limit };
       let results: StandardSearchResult[] = [];
 
@@ -187,5 +191,13 @@ export abstract class WebSearcher extends FetchSession {
     context: SearchContext
   ): Promise<StandardSearchResult[]> {
     return outputs['results'] || [];
+  }
+
+  /**
+   * Transforms standard options into engine-specific template variables.
+   * Subclasses should override this to map 'timeRange', 'category', etc. to URL parameters.
+   */
+  protected formatOptions(options: SearchOptions): Record<string, any> {
+    return { ...options };
   }
 }

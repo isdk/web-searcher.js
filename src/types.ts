@@ -73,6 +73,21 @@ export interface SearchContext {
   limit?: number;
 }
 
+export type SearchTimeRangePreset = 'all' | 'day' | 'week' | 'month' | 'year';
+
+export interface CustomTimeRange {
+  /** Start date (Date object or string like 'YYYY-MM-DD'). */
+  from: Date | string;
+  /** End date (Date object or string like 'YYYY-MM-DD'). Defaults to current date if omitted. */
+  to?: Date | string;
+}
+
+export type SearchTimeRange = SearchTimeRangePreset | CustomTimeRange;
+
+export type SearchCategory = 'all' | 'images' | 'videos' | 'news';
+
+export type SafeSearchLevel = 'off' | 'moderate' | 'strict';
+
 /**
  * Options provided when executing a search.
  */
@@ -80,6 +95,34 @@ export interface SearchOptions {
   /** The maximum number of results to retrieve. */
   limit?: number;
   
+  /**
+   * Date range for the search results.
+   * Default: 'all'
+   */
+  timeRange?: SearchTimeRange;
+
+  /**
+   * The category of results to return.
+   * Default: 'all' (web search)
+   */
+  category?: SearchCategory;
+
+  /**
+   * Region code (ISO 3166-1 alpha-2) to bias results (e.g., 'US', 'CN', 'JP').
+   */
+  region?: string;
+
+  /**
+   * Language code (ISO 639-1) for the interface or results (e.g., 'en', 'zh-CN').
+   */
+  language?: string;
+
+  /**
+   * Safe search filtering level.
+   * Default: engine dependent (usually 'moderate' or 'strict' by default).
+   */
+  safeSearch?: SafeSearchLevel;
+
   /** 
    * A custom transform function to filter or modify results at runtime.
    * This runs AFTER the engine-level transform.

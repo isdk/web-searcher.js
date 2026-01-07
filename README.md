@@ -169,6 +169,37 @@ await google.search('test', {
 
 If the user filters out results, the auto-pagination logic will kick in to fetch more pages to meet the requested limit.
 
+### Standardized Search Options
+
+When calling `search()`, you can provide standardized options that the search engine will map to specific parameters:
+
+```typescript
+const results = await google.search('open source', {
+  limit: 20,
+  timeRange: 'month',       // 'day', 'week', 'month', 'year'
+  // Or custom range:
+  // timeRange: { from: '2023-01-01', to: '2023-12-31' },
+  category: 'news',         // 'all', 'images', 'videos', 'news'
+  region: 'US',             // ISO 3166-1 alpha-2
+  language: 'en',           // ISO 639-1
+  safeSearch: 'strict',     // 'off', 'moderate', 'strict'
+});
+```
+
+To support these in your own engine, override the `formatOptions` method:
+
+```typescript
+protected override formatOptions(options: SearchOptions): Record<string, any> {
+  const vars: Record<string, any> = {};
+  if (options.timeRange === 'day') vars.tbs = 'qdr:d';
+  // ... map other options to template variables
+  return vars;
+}
+```
+
+Then use these variables in your `template.url`:
+`url: 'https://www.google.com/search?q=${query}&tbs=${tbs}'`
+
 ### Custom Variables
 
 You can pass custom variables to `search()` and use them in your template.
