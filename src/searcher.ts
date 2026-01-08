@@ -23,9 +23,9 @@ export abstract class WebSearcher extends FetchSession {
   // @ts-ignore
   declare static name?: string;
   /**
-   * Engine aliases.
+   * Engine alias.
    */
-  declare static aliases?: string[];
+  declare static alias?: string | string[];
 
   /**
    * Registers a search engine class.

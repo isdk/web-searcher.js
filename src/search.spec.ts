@@ -12,6 +12,8 @@ describe('Searcher', () => {
 
   it('should register and retrieve engines', () => {
     expect(WebSearcher.get('Google')).toBe(GoogleSearcher);
+    // Verify alias registration
+    expect(WebSearcher.get('google')).toBe(GoogleSearcher);
   });
 
   describe('Instance Logic (Pagination & Transform)', () => {

@@ -3,6 +3,7 @@ import { WebSearcher } from '../searcher';
 import { PaginationConfig, SearchOptions } from '../types';
 
 export class GoogleSearcher extends WebSearcher {
+  static override alias = ['google'];
 
   get template(): FetcherOptions {
     return {
@@ -54,7 +55,7 @@ export class GoogleSearcher extends WebSearcher {
         // Custom Range
         const fromDate = new Date(options.timeRange.from);
         const toDate = options.timeRange.to ? new Date(options.timeRange.to) : new Date();
-        
+
         if (!isNaN(fromDate.getTime()) && !isNaN(toDate.getTime())) {
            const format = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
            vars.tbs = `cdr:1,cd_min:${format(fromDate)},cd_max:${format(toDate)}`;
@@ -77,12 +78,12 @@ export class GoogleSearcher extends WebSearcher {
     // Map Region/Language
     if (options.region) vars.gl = options.region;
     if (options.language) vars.hl = options.language;
-    
+
     // Map SafeSearch
     if (options.safeSearch) {
         if (options.safeSearch === 'strict') vars.safe = 'active';
-        else if (options.safeSearch === 'off') vars.safe = 'images'; 
-        // 'moderate' is usually default, so we might not need to set anything, 
+        else if (options.safeSearch === 'off') vars.safe = 'images';
+        // 'moderate' is usually default, so we might not need to set anything,
         // or explicitly set safe=active (which is often strict/moderate depending on region context).
         // Google simplified safe search to 'active' (on) or 'images' (blur explicit images) or nothing (off).
     }

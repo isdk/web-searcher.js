@@ -80,7 +80,7 @@ import { FetcherOptions } from '@isdk/web-fetcher/types';
 
 export class MyBlogSearcher extends Searcher {
   static name = 'blog'; // 自定义名称 (区分大小写)
-  static aliases = ['myblog', 'news'];
+  static alias = ['myblog', 'news'];
 
   protected get template(): FetcherOptions {
     return {

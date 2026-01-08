@@ -6,12 +6,14 @@ import { GoogleSearcher } from './google';
 const runRealNetworkTests = process.env.RunNetworkTests === 'true';
 
 describe.skipIf(!runRealNetworkTests)('Google Search Engine (Live)', () => {
-  it('should fetch real results from Google', async () => {
-    // Register the engine (optional if we use class directly, but good for completeness)
+  beforeAll(() => {
     WebSearcher.register(GoogleSearcher);
+  });
+  afterAll(() => {
+    WebSearcher.unregister(GoogleSearcher);
+  });
 
-    console.log('Fetching Google results for "hello world"...');
-
+  it('should fetch real results from Google', async () => {
     // Execute search using the static helper
     // We pass { engine: 'http' } to override the default 'auto' if desired,
     // but GoogleSearcher defaults to 'auto' which is fine.
