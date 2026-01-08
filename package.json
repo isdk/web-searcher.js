@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@isdk/web-fetcher": "workspace:^",
+    "custom-factory": "^2.5.0",
     "lodash-es": "^4.17.21"
   },
   "devDependencies": {

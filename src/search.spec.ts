@@ -1,11 +1,17 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { WebSearcher } from './searcher';
 import { GoogleSearcher } from './engines/google';
 
 describe('Searcher', () => {
-  it('should register and retrieve engines', () => {
+  beforeAll(() => {
     WebSearcher.register(GoogleSearcher);
-    expect(WebSearcher.get('google')).toBe(GoogleSearcher);
+  });
+  afterAll(() => {
+    WebSearcher.unregister(GoogleSearcher);
+  });
+
+  it('should register and retrieve engines', () => {
+    expect(WebSearcher.get('Google')).toBe(GoogleSearcher);
   });
 
   describe('Instance Logic (Pagination & Transform)', () => {
@@ -90,7 +96,6 @@ describe('Searcher', () => {
       const $ = cheerio.load(html);
 
       // Get the extract action from the class getter
-      // Note: We need to access the prototype or an instance to get the getter
       const template = new GoogleSearcher().template;
       const extractAction = template.actions!.find(a => a.id === 'extract');
       const extractParams = extractAction!.params;
@@ -121,15 +126,13 @@ describe('Searcher', () => {
 
   describe('Static Helper', () => {
     it('should create instance and search', async () => {
-      WebSearcher.register(GoogleSearcher);
-
       // Mock the prototype search method to avoid real execution
       const searchSpy = vi.spyOn(GoogleSearcher.prototype, 'search')
         .mockResolvedValue([{ title: 'Static Result', url: 'http://test.com' }]);
       const disposeSpy = vi.spyOn(GoogleSearcher.prototype, 'dispose')
         .mockResolvedValue(undefined);
 
-      const results = await WebSearcher.search('google', 'query');
+      const results = await WebSearcher.search('Google', 'query');
 
       expect(results).toHaveLength(1);
       expect(searchSpy).toHaveBeenCalledWith('query', expect.anything());

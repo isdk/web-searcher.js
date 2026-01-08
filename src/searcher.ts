@@ -1,4 +1,5 @@
 import { FetchActionOptions, FetcherOptions, FetchSession } from "@isdk/web-fetcher";
+import { addBaseFactoryAbility, IBaseFactoryOptions } from "custom-factory";
 import { PaginationConfig, SearchContext, SearchOptions, StandardSearchResult } from "./types";
 import { injectVariables } from "./utils/inject";
 
@@ -13,26 +14,63 @@ export type SearcherConstructor = new (options?: FetcherOptions) => WebSearcher;
  * capable of maintaining state (cookies, storage) across multiple searches.
  */
 export abstract class WebSearcher extends FetchSession {
-  // === Static Registry ===
-  private static registry = new Map<string, SearcherConstructor>();
+  // the registered item is not a factory
+  static _isFactory = false;
+
+  /**
+   * Custom engine name. If not provided, derived from class name.
+   */
+  // @ts-ignore
+  declare static name?: string;
+  /**
+   * Engine aliases.
+   */
+  declare static aliases?: string[];
 
   /**
    * Registers a search engine class.
-   * The class must have a static 'engineName' property.
+   *
+   * @param ctor - The search engine class to register.
+   * @param options - Registration options. If string, it is the registered name.
    */
-  static register(EngineClass: SearcherConstructor & { engineName: string }): void {
-    if (!EngineClass.engineName) {
-      throw new Error('Searcher subclass must have a static "engineName" property');
-    }
-    this.registry.set(EngineClass.engineName, EngineClass);
-  }
+  declare static register: (ctor: typeof WebSearcher, options?: IBaseFactoryOptions | string) => boolean;
+
+  /**
+   * Unregisters a search engine.
+   *
+   * @param name - The name or class to unregister.
+   */
+  declare static unregister: (name?: string | typeof WebSearcher) => void;
 
   /**
    * Retrieves a registered search engine class by name.
+   *
+   * @param name - The name of the engine (e.g., 'Google').
    */
-  static get(engineName: string): SearcherConstructor | undefined {
-    return this.registry.get(engineName);
-  }
+  declare static get: (name: string) => typeof WebSearcher;
+
+  /**
+   * Creates an instance of the registered search engine.
+   *
+   * @param name - The name of the engine.
+   * @param args - Arguments to pass to the constructor.
+   */
+  declare static createObject: (name: string, ...args: any[]) => WebSearcher;
+
+  /**
+   * Iterates over all registered engines.
+   *
+   * @param cb - Callback function.
+   */
+  declare static forEach: (cb: (ctor: typeof WebSearcher, name: string) => void) => void;
+
+  /**
+   * Sets aliases for a registered engine.
+   *
+   * @param ctor - The search engine class.
+   * @param aliases - Aliases to add.
+   */
+  declare static setAliases: (ctor: typeof WebSearcher, ...aliases: string[]) => void;
 
   /**
    * Static helper to execute a one-off search.
@@ -43,12 +81,11 @@ export abstract class WebSearcher extends FetchSession {
     query: string,
     options: SearchOptions & FetcherOptions = {}
   ): Promise<StandardSearchResult[]> {
-    const EngineClass = this.get(engineName);
-    if (!EngineClass) {
+    const instance = (this as any).createObject(engineName, options) as WebSearcher;
+    if (!instance) {
       throw new Error(`Search engine not found: ${engineName}`);
     }
 
-    const instance = new EngineClass(options);
     try {
       return await instance.search(query, options);
     } finally {
@@ -201,3 +238,11 @@ export abstract class WebSearcher extends FetchSession {
     return { ...options };
   }
 }
+
+// Apply the factory mixin
+addBaseFactoryAbility(WebSearcher);
+
+// Set the prototype name to 'Searcher' to allow automatic name extraction
+// e.g., 'GoogleSearcher' -> 'Google' (baseNameOnly=1)
+// @ts-ignore
+WebSearcher.prototype.name = 'Searcher';

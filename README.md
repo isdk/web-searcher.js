@@ -28,7 +28,8 @@ Searcher.register(GoogleSearcher);
 
 // Search!
 // The 'limit' parameter ensures we fetch enough pages to get 20 results.
-const results = await Searcher.search('google', 'open source', { limit: 20 });
+// Note: The engine name is case-sensitive and derived from the class name (e.g., 'GoogleSearcher' -> 'Google')
+const results = await Searcher.search('Google', 'open source', { limit: 20 });
 
 console.log(results);
 ```
@@ -62,6 +63,8 @@ To support a new website, create a class that extends `Searcher`.
 
 ### Step 1: Define the Template
 
+To support a new website, create a class that extends `Searcher`. The engine name is automatically derived from the class name (e.g., `MyBlogSearcher` -> `MyBlog`), but you can customize it and add aliases using static properties.
+
 The `template` property defines the "Blueprint" for your search. It's a standard `FetcherOptions` object but supports **variable injection**.
 
 Supported variables:
@@ -76,7 +79,8 @@ import { Searcher } from '@isdk/web-fetcher/search';
 import { FetcherOptions } from '@isdk/web-fetcher/types';
 
 export class MyBlogSearcher extends Searcher {
-  static readonly engineName = 'my-blog';
+  static name = 'blog'; // Custom name (case-sensitive)
+  static aliases = ['myblog', 'news'];
 
   protected get template(): FetcherOptions {
     return {

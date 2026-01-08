@@ -28,7 +28,8 @@ Searcher.register(GoogleSearcher);
 
 // 搜索！
 // 'limit' 参数确保我们会自动翻页直到获取 20 条结果。
-const results = await Searcher.search('google', 'open source', { limit: 20 });
+// 注意：引擎名称区分大小写，且由类名自动提取（例如：'GoogleSearcher' -> 'Google'）
+const results = await Searcher.search('Google', 'open source', { limit: 20 });
 
 console.log(results);
 ```
@@ -62,6 +63,8 @@ try {
 
 ### 步骤 1: 定义模板 (Template)
 
+要支持一个新的网站，请创建一个继承自 `Searcher` 的类。引擎名称默认由类名自动提取（例如：`MyBlogSearcher` -> `MyBlog`），但您可以通过静态属性自定义名称和别名。
+
 `template` 属性定义了搜索的“蓝图”。它是一个标准的 `FetcherOptions` 对象，但支持**变量注入**。
 
 支持的变量:
@@ -76,7 +79,8 @@ import { Searcher } from '@isdk/web-fetcher/search';
 import { FetcherOptions } from '@isdk/web-fetcher/types';
 
 export class MyBlogSearcher extends Searcher {
-  static readonly engineName = 'my-blog';
+  static name = 'blog'; // 自定义名称 (区分大小写)
+  static aliases = ['myblog', 'news'];
 
   protected get template(): FetcherOptions {
     return {

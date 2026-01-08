@@ -3,7 +3,6 @@ import { WebSearcher } from '../searcher';
 import { PaginationConfig, SearchOptions } from '../types';
 
 export class GoogleSearcher extends WebSearcher {
-  static readonly engineName = 'google';
 
   get template(): FetcherOptions {
     return {
