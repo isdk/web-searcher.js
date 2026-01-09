@@ -38,16 +38,28 @@ console.log(results);
 
 Since `Searcher` extends `FetchSession`, you can instantiate it to keep cookies and storage alive across multiple requests. This is useful for authenticated searches or avoiding bot detection by behaving like a human.
 
+**Configuration Precedence:**
+When creating a session, options are merged in the following order:
+1. **Template Default**: Defined in the Searcher class (highest priority for structural options).
+2. **User Options**: Passed to the constructor (can fill missing defaults or override if allowed).
+
+*Note: If the template sets `engine: 'auto'` (default), user-provided `engine` option will be respected.*
+
 ```typescript
 // Create a persistent session
 const google = new GoogleSearcher({
   headless: false, // Override default options (e.g., show browser)
-  proxy: 'http://my-proxy:8080'
+  proxy: 'http://my-proxy:8080',
+  timeoutMs: 30000 // Set a global timeout for requests
 });
 
 try {
   // First query
-  const results1 = await google.search('term A');
+  // You can also pass runtime options to override session defaults or inject variables
+  const results1 = await google.search('term A', {
+    timeoutMs: 60000, // Override timeout just for this search
+    extraParam: 'value' // Can be used in template as ${extraParam}
+  });
 
   // Second query (reuses the same browser window/cookies)
   const results2 = await google.search('term B');

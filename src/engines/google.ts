@@ -7,7 +7,8 @@ export class GoogleSearcher extends WebSearcher {
 
   get template(): FetcherOptions {
     return {
-      engine: 'auto',
+      engine: 'browser',
+      antibot: true,
       url: 'https://www.google.com/search?q=${query}&start=${offset}&tbs=${tbs}&tbm=${tbm}&gl=${gl}&hl=${hl}&safe=${safe}',
       actions: [
         {

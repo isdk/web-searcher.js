@@ -2,6 +2,7 @@ import { FetchActionOptions, FetcherOptions, FetchSession } from "@isdk/web-fetc
 import { addBaseFactoryAbility, IBaseFactoryOptions } from "custom-factory";
 import { PaginationConfig, SearchContext, SearchOptions, StandardSearchResult } from "./types";
 import { injectVariables } from "./utils/inject";
+import { defaultsDeep } from "lodash-es";
 
 /**
  * Constructor definition for Searcher subclasses.
@@ -109,8 +110,21 @@ export abstract class WebSearcher extends FetchSession {
     return undefined;
   }
 
-  constructor(options: FetcherOptions = {}) {
-    super(options);
+  protected createContext(options: FetcherOptions = this.options) {
+    const template = this.template;
+    // 1. Merge config: Template > User Options
+    // We use defaultsDeep to ensure template properties take precedence,
+    // but missing properties are filled from user options.
+    const effectiveOptions = defaultsDeep({}, template, options);
+
+    // 2. Special handling for 'engine'
+    // If template specifies 'auto' (or is missing) but user provided an explicit engine,
+    // we want to respect the user's choice.
+    if ((!template.engine || template.engine === 'auto') && options.engine) {
+      effectiveOptions.engine = options.engine;
+    }
+
+    return super.createContext(effectiveOptions);
   }
 
   /**
@@ -132,8 +146,8 @@ export abstract class WebSearcher extends FetchSession {
     const increment = this.pagination?.increment ?? 1;
 
     // Use the template to determine the base session options (like engine preference)
-    // We merge these into the session's context if needed, but FetchSession takes options in constructor.
-    // However, the 'actions' and 'url' will be driven by the loop below.
+    // We merge these into the session's context via createContext -> super().
+    // However, for the per-request options in the loop, we need to re-evaluate.
 
     while (allResults.length < limit) {
       // 1. Calculate engine-specific variables
@@ -152,9 +166,16 @@ export abstract class WebSearcher extends FetchSession {
 
       // 3. Inject variables into the template
       // This creates a new options object with resolved strings (e.g., url with query)
-      const currentOptions = injectVariables(this.template, variables);
+      const templateWithOptions = injectVariables(this.template, variables);
 
-      // 4. Prepare Actions
+      // 4. Merge runtime options
+      // Template takes precedence (via defaultsDeep logic in createContext),
+      // but here we ensure any runtime-only options (like timeoutMs provided in search call)
+      // are mixed in if not strictly defined by template.
+      // defaultsDeep(dest, source) -> keeps dest, fills from source.
+      const currentOptions = defaultsDeep({}, templateWithOptions, options) as FetcherOptions;
+
+      // 5. Prepare Actions
       const actions: FetchActionOptions[] = [];
 
       // Handling navigation logic
@@ -176,12 +197,8 @@ export abstract class WebSearcher extends FetchSession {
         actions.push(...templateActions);
       }
 
-      // 5. Execute the fetch actions
+      // 6. Execute the fetch actions
       // Note: We use executeAll from FetchSession (this)
-      // We might need to handle 'engine' switching if the template requires a specific engine
-      // that differs from the session default. FetchSession.execute handles this via maybeCreateEngine.
-      // But passing 'engine' in options to executeAll isn't directly supported on individual actions usually,
-      // but creating the session with the right engine preference is handled in constructor.
       // If the template specifies 'engine', we should probably respect it for the session context.
       if (currentOptions.engine && this.context.engine !== currentOptions.engine && currentOptions.engine !== 'auto') {
          // This is a complex case: changing engine mid-flight.
@@ -190,7 +207,7 @@ export abstract class WebSearcher extends FetchSession {
 
       const { outputs } = await this.executeAll(actions);
 
-      // 6. Extract and transform results
+      // 7. Extract and transform results
       const context: SearchContext = { query, page, limit: options.limit };
       let results: StandardSearchResult[] = [];
 
@@ -240,7 +257,7 @@ export abstract class WebSearcher extends FetchSession {
 }
 
 // Apply the factory mixin
-addBaseFactoryAbility(WebSearcher);
+addBaseFactoryAbility(WebSearcher as any);
 
 // Set the prototype name to 'Searcher' to allow automatic name extraction
 // e.g., 'GoogleSearcher' -> 'Google' (baseNameOnly=1)

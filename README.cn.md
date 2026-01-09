@@ -38,16 +38,28 @@ console.log(results);
 
 由于 `Searcher` 继承自 `FetchSession`，您可以实例化它以在多个请求之间保持 Cookie 和存储。这对于需要登录的搜索或通过模拟人类行为来避免反爬虫非常有用。
 
+**配置优先级：**
+创建会话时，选项按以下顺序合并：
+1. **模板默认 (Template Default)**：在 Searcher 类中定义（结构化选项的优先级最高）。
+2. **用户选项 (User Options)**：传递给构造函数的选项（可填充缺失的默认值，或在允许的情况下进行覆盖）。
+
+*注：如果模板设置了 `engine: 'auto'`（默认值），则会尊重用户提供的 `engine` 选项。*
+
 ```typescript
 // 创建一个持久化会话
 const google = new GoogleSearcher({
   headless: false, // 覆盖默认选项 (例如显示浏览器)
-  proxy: 'http://my-proxy:8080'
+  proxy: 'http://my-proxy:8080',
+  timeoutMs: 30000 // 为请求设置全局超时
 });
 
 try {
   // 第一次查询
-  const results1 = await google.search('term A');
+  // 您还可以传递运行时选项来覆盖会话默认值或注入变量
+  const results1 = await google.search('term A', {
+    timeoutMs: 60000, // 仅针对此搜索覆盖超时时间
+    extraParam: 'value' // 可以在模板中通过 ${extraParam} 使用
+  });
 
   // 第二次查询 (复用同一个浏览器窗口/Cookies)
   const results2 = await google.search('term B');
