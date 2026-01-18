@@ -11,20 +11,36 @@ export type SearcherConstructor = new (options?: FetcherOptions) => WebSearcher;
 
 /**
  * The abstract base class for all search engines.
- * It extends FetchSession, meaning each Searcher instance is an active session
- * capable of maintaining state (cookies, storage) across multiple searches.
+ *
+ * It extends `FetchSession`, meaning each `WebSearcher` instance is an active session
+ * capable of maintaining state (e.g., cookies, local storage) across multiple search queries.
+ *
+ * Developers should extend this class to create specific search engine implementations
+ * (e.g., Google, Bing, DuckDuckGo).
+ *
+ * @example
+ * ```typescript
+ * class MySearcher extends WebSearcher {
+ *   get template() {
+ *     return { url: '...' };
+ *   }
+ * }
+ * WebSearcher.register(MySearcher);
+ * ```
  */
 export abstract class WebSearcher extends FetchSession {
   // the registered item is not a factory
   static _isFactory = false;
 
   /**
-   * Custom engine name. If not provided, derived from class name.
+   * Custom engine name. If not provided, it is derived from the class name.
+   * For example, `GoogleSearcher` becomes `Google`.
    */
   // @ts-ignore
   declare static name?: string;
   /**
-   * Engine alias.
+   * Engine alias(es). Can be a single string or an array of strings.
+   * Useful for registering shorthand names (e.g., 'g' for 'Google').
    */
   declare static alias?: string | string[];
 
@@ -32,7 +48,8 @@ export abstract class WebSearcher extends FetchSession {
    * Registers a search engine class.
    *
    * @param ctor - The search engine class to register.
-   * @param options - Registration options. If string, it is the registered name.
+   * @param options - Registration options. If a string is provided, it is used as the registered name.
+   * @returns `true` if registration was successful.
    */
   declare static register: (ctor: typeof WebSearcher, options?: IBaseFactoryOptions | string) => boolean;
 
@@ -47,6 +64,7 @@ export abstract class WebSearcher extends FetchSession {
    * Retrieves a registered search engine class by name.
    *
    * @param name - The name of the engine (e.g., 'Google').
+   * @returns The search engine class constructor.
    */
   declare static get: (name: string) => typeof WebSearcher;
 
@@ -55,13 +73,14 @@ export abstract class WebSearcher extends FetchSession {
    *
    * @param name - The name of the engine.
    * @param args - Arguments to pass to the constructor.
+   * @returns An instance of the search engine.
    */
   declare static createObject: (name: string, ...args: any[]) => WebSearcher;
 
   /**
    * Iterates over all registered engines.
    *
-   * @param cb - Callback function.
+   * @param cb - Callback function to invoke for each registered engine.
    */
   declare static forEach: (cb: (ctor: typeof WebSearcher, name: string) => void) => void;
 
@@ -75,7 +94,14 @@ export abstract class WebSearcher extends FetchSession {
 
   /**
    * Static helper to execute a one-off search.
-   * It creates an instance, executes the search, and then disposes the session.
+   *
+   * It creates an instance of the specified engine, executes the search, and then
+   * automatically disposes of the session.
+   *
+   * @param engineName - The name of the engine to use (e.g., 'Google').
+   * @param query - The search query string.
+   * @param options - Combined search options and fetcher options.
+   * @returns A promise resolving to an array of standardized search results.
    */
   static async search(
     engineName: string,
@@ -98,13 +124,29 @@ export abstract class WebSearcher extends FetchSession {
 
   /**
    * The declarative template for the fetch options.
-   * Subclasses must implement this getter to provide the engine configuration.
-   * Supports variable injection (e.g., ${query}).
+   *
+   * Subclasses **must** implement this getter to provide the engine configuration,
+   * including the base URL, search parameters pattern, and extraction rules.
+   *
+   * Supports variable injection using syntax like `${query}`, `${offset}`, etc.
+   *
+   * @example
+   * ```typescript
+   * get template() {
+   *   return {
+   *     url: 'https://example.com/search?q=${query}',
+   *     actions: [ ... ]
+   *   };
+   * }
+   * ```
    */
   abstract get template(): FetcherOptions;
 
   /**
    * Optional pagination configuration.
+   * Defines how the searcher navigates to subsequent pages.
+   *
+   * If undefined, the searcher will only fetch the first page.
    */
   get pagination(): PaginationConfig | undefined {
     return undefined;
@@ -130,8 +172,11 @@ export abstract class WebSearcher extends FetchSession {
   /**
    * Executes a search query.
    *
+   * This method handles the pagination loop, variable injection, fetching,
+   * and result transformation.
+   *
    * @param query - The search query string.
-   * @param options - Optional search parameters (e.g., limit).
+   * @param options - Optional search parameters (e.g., limit, timeRange).
    * @returns A promise resolving to an array of standardized search results.
    */
   async search(
@@ -234,10 +279,13 @@ export abstract class WebSearcher extends FetchSession {
 
   /**
    * Transform and clean the raw extracted results.
-   * Subclasses should override this method to provide engine-specific cleaning.
+   *
+   * Subclasses should override this method to provide engine-specific cleaning,
+   * normalization, or post-processing of the data extracted by the fetcher.
    *
    * @param outputs - The complete outputs object from the fetch actions.
-   * @param context - The search context.
+   * @param context - The search context (query, page, etc.).
+   * @returns A promise resolving to an array of standardized search results.
    */
   protected async transform(
     outputs: Record<string, any>,
@@ -249,7 +297,13 @@ export abstract class WebSearcher extends FetchSession {
 
   /**
    * Transforms standard options into engine-specific template variables.
-   * Subclasses should override this to map 'timeRange', 'category', etc. to URL parameters.
+   *
+   * Subclasses should override this to map standard options like 'timeRange',
+   * 'category', 'region' into the specific URL parameters required by the engine
+   * (e.g., mapping `timeRange: 'day'` to `tbs: 'qdr:d'` for Google).
+   *
+   * @param options - The search options provided by the user.
+   * @returns A dictionary of variables to be injected into the template.
    */
   protected formatOptions(options: SearchOptions): Record<string, any> {
     return { ...options };

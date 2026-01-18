@@ -2,25 +2,51 @@ import { FetcherOptions } from '@isdk/web-fetcher';
 import { WebSearcher } from '../searcher';
 import { PaginationConfig, SearchOptions } from '../types';
 
+/**
+ * A sample implementation of a Google Search scraper.
+ *
+ * @remarks
+ * **⚠️ DEMO ONLY ⚠️**
+ *
+ * This class serves as a **reference implementation** to demonstrate how to extend
+ * the `WebSearcher` base class. It is **NOT intended for production use**.
+ *
+ * Google frequently changes its HTML structure and employs sophisticated anti-bot measures.
+ * A production-grade Google scraper would require robust proxy rotation, CAPTCHA solving,
+ * and constant maintenance of selectors, or usage of an official API.
+ *
+ * Use this class to understand:
+ * 1. How to define a fetch template with variable injection.
+ * 2. How to map standard options (like time range) to engine-specific URL parameters.
+ * 3. How to handle pagination.
+ * 4. How to transform and clean raw extracted data.
+ */
 export class GoogleSearcher extends WebSearcher {
   static override alias = ['google'];
 
+  /**
+   * Defines the fetch template for Google Search.
+   *
+   * @returns The fetcher configuration including the URL pattern and extraction rules.
+   */
   get template(): FetcherOptions {
     return {
       engine: 'browser',
-      antibot: true,
+      browser: {
+        headless: false,
+      },
       url: 'https://www.google.com/search?q=${query}&start=${offset}&tbs=${tbs}&tbm=${tbm}&gl=${gl}&hl=${hl}&safe=${safe}',
       actions: [
         {
           id: 'extract',
           storeAs: 'results',
-          params: {
-            type: 'array',
-            selector: 'div.g',
-            items: {
-              title: { selector: 'h3' },
-              url: { selector: 'a', attribute: 'href' },
-              snippet: { selector: 'div[style*="-webkit-line-clamp"]' }
+          "params": {
+            "type": "array",
+            "selector": "#main #search",
+            "items": {
+              "url": { "selector": "a:has(h3)", "attribute": "href", "required": true },
+              "title": { "selector": "a:has(h3) h3", "required": true, "mode": "innerText" },
+              "snippet": { "selector": "div[style*='-webkit-line-clamp']", "type": "html" }
             }
           }
         }
@@ -28,6 +54,10 @@ export class GoogleSearcher extends WebSearcher {
     };
   }
 
+  /**
+   * Configures pagination for Google Search results.
+   * Uses the 'start' URL parameter, incrementing by 10 for each page.
+   */
   override get pagination(): PaginationConfig {
     return {
       type: 'url-param',
@@ -37,6 +67,18 @@ export class GoogleSearcher extends WebSearcher {
     };
   }
 
+  /**
+   * Maps standard `SearchOptions` to Google's specific URL parameters.
+   *
+   * - `timeRange` -> `tbs` (e.g., 'qdr:d' for day)
+   * - `category` -> `tbm` (e.g., 'isch' for images)
+   * - `region` -> `gl`
+   * - `language` -> `hl`
+   * - `safeSearch` -> `safe`
+   *
+   * @param options - The user-provided search options.
+   * @returns A map of variables to inject into the URL template.
+   */
   protected override formatOptions(options: SearchOptions): Record<string, any> {
     const vars: Record<string, any> = {};
 
@@ -92,6 +134,13 @@ export class GoogleSearcher extends WebSearcher {
     return vars;
   }
 
+  /**
+   * Cleans and normalizes the extracted results.
+   * Specifically, it unwraps Google's redirect URLs (starting with `/url?q=`).
+   *
+   * @param outputs - The raw outputs from the fetcher.
+   * @returns An array of cleaned search results.
+   */
   protected override async transform(outputs: Record<string, any>): Promise<any[]> {
     const results = outputs['results'] || [];
     if (!Array.isArray(results)) return [];

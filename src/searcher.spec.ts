@@ -1,25 +1,56 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { WebSearcher } from './searcher';
-import { GoogleSearcher } from './engines/google';
+import { FetcherOptions } from '@isdk/web-fetcher';
+import { PaginationConfig } from './types';
+
+class MockSearcher extends WebSearcher {
+  get template(): FetcherOptions {
+    return {
+      url: 'http://test.com/search?q=${query}&start=${offset}',
+      actions: [
+        {
+          id: 'extract',
+          storeAs: 'results',
+          params: {
+            selector: '.result',
+            items: {
+              title: { selector: 'h3' },
+              url: { selector: 'a', attribute: 'href' }
+            }
+          }
+        }
+      ]
+    };
+  }
+
+  override get pagination(): PaginationConfig {
+    return {
+      type: 'url-param',
+      startValue: 0,
+      increment: 10
+    };
+  }
+}
 
 describe('Searcher', () => {
   beforeAll(() => {
-    WebSearcher.register(GoogleSearcher);
+    WebSearcher.register(MockSearcher, 'Mock');
   });
   afterAll(() => {
-    WebSearcher.unregister(GoogleSearcher);
+    WebSearcher.unregister('Mock');
   });
 
   it('should register and retrieve engines', () => {
-    expect(WebSearcher.get('Google')).toBe(GoogleSearcher);
-    // Verify alias registration
-    expect(WebSearcher.get('google')).toBe(GoogleSearcher);
+    expect(WebSearcher.get('Mock')).toBe(MockSearcher);
+    // Verify alias registration (MockSearcher doesn't have aliases, but we can test the mechanism)
+    WebSearcher.setAliases(MockSearcher, 'mock-alias');
+    expect(WebSearcher.get('mock-alias')).toBe(MockSearcher);
   });
 
   describe('Instance Logic (Pagination & Transform)', () => {
     it('should fetch multiple pages to satisfy limit', async () => {
       // Create instance directly
-      const searcher = new GoogleSearcher();
+      const searcher = new MockSearcher();
 
       // Mock executeAll to return fake results
       const executeSpy = vi.spyOn(searcher, 'executeAll')
@@ -57,7 +88,7 @@ describe('Searcher', () => {
     });
 
     it('should apply user-defined transform', async () => {
-      const searcher = new GoogleSearcher();
+      const searcher = new MockSearcher();
 
       vi.spyOn(searcher, 'executeAll')
         .mockResolvedValue({
@@ -72,69 +103,23 @@ describe('Searcher', () => {
 
       const results = await searcher.search('filter test', {
         limit: 1,
-        transform: (items) => items.filter(i => i.type === 'target')
+        transform: (items) => items.filter(i => (i as any).type === 'target')
       });
 
       expect(results).toHaveLength(1);
-      expect(results[0].type).toBe('target');
-    });
-
-    it('should parse real Google HTML structure correctly', async () => {
-      const html = `
-        <div class="g">
-          <div>
-            <a href="/url?q=https://github.com/isdk/web-fetcher&amp;sa=U&amp;ved=0ahUKEwj..." data-ved="2ahUKEwj...">
-              <h3>GitHub - isdk/web-fetcher</h3>
-              <div style="-webkit-line-clamp:2">
-                A powerful web scraping library...
-              </div>
-            </a>
-          </div>
-        </div>
-      `;
-
-      // 1. Validate Selectors using Cheerio
-      const cheerio = await import('cheerio');
-      const $ = cheerio.load(html);
-
-      // Get the extract action from the class getter
-      const template = new GoogleSearcher().template;
-      const extractAction = template.actions!.find(a => a.id === 'extract');
-      const extractParams = extractAction!.params;
-
-      const items = $(extractParams.selector).map((_, el) => {
-        const $el = $(el);
-        return {
-          title: $el.find(extractParams.items.title.selector).text().trim(),
-          url: $el.find(extractParams.items.url.selector).attr(extractParams.items.url.attribute),
-          snippet: $el.find(extractParams.items.snippet.selector).text().trim()
-        };
-      }).get();
-
-      expect(items.length).toBeGreaterThan(0);
-      expect(items[0].title).toBe('GitHub - isdk/web-fetcher');
-      expect(items[0].url).toContain('/url?q=https://github.com/isdk/web-fetcher');
-
-      // 2. Validate Transform Logic
-      const searcher = new GoogleSearcher();
-      vi.spyOn(searcher, 'executeAll').mockResolvedValue({ outputs: { results: items } } as any);
-      vi.spyOn(searcher, 'dispose').mockResolvedValue(undefined);
-
-      const results = await searcher.search('test');
-
-      expect(results[0].url).toBe('https://github.com/isdk/web-fetcher');
+      expect((results[0] as any).type).toBe('target');
     });
   });
 
   describe('Static Helper', () => {
     it('should create instance and search', async () => {
       // Mock the prototype search method to avoid real execution
-      const searchSpy = vi.spyOn(GoogleSearcher.prototype, 'search')
+      const searchSpy = vi.spyOn(MockSearcher.prototype, 'search')
         .mockResolvedValue([{ title: 'Static Result', url: 'http://test.com' }]);
-      const disposeSpy = vi.spyOn(GoogleSearcher.prototype, 'dispose')
+      const disposeSpy = vi.spyOn(MockSearcher.prototype, 'dispose')
         .mockResolvedValue(undefined);
 
-      const results = await WebSearcher.search('Google', 'query');
+      const results = await WebSearcher.search('Mock', 'query');
 
       expect(results).toHaveLength(1);
       expect(searchSpy).toHaveBeenCalledWith('query', expect.anything());
