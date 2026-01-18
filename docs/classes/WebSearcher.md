@@ -6,7 +6,7 @@
 
 # Abstract Class: WebSearcher
 
-Defined in: [web-searcher/src/searcher.ts:31](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L31)
+Defined in: [web-searcher/src/searcher.ts:31](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L31)
 
 The abstract base class for all search engines.
 
@@ -119,7 +119,7 @@ Defined in: web-fetcher/dist/index.d.ts:2177
 
 > `static` **\_isFactory**: `boolean` = `false`
 
-Defined in: [web-searcher/src/searcher.ts:33](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L33)
+Defined in: [web-searcher/src/searcher.ts:33](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L33)
 
 ***
 
@@ -127,7 +127,7 @@ Defined in: [web-searcher/src/searcher.ts:33](https://github.com/isdk/web-search
 
 > `static` `optional` **alias**: `string` \| `string`[]
 
-Defined in: [web-searcher/src/searcher.ts:45](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L45)
+Defined in: [web-searcher/src/searcher.ts:45](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L45)
 
 Engine alias(es). Can be a single string or an array of strings.
 Useful for registering shorthand names (e.g., 'g' for 'Google').
@@ -138,7 +138,7 @@ Useful for registering shorthand names (e.g., 'g' for 'Google').
 
 > `static` **createObject**: (`name`, ...`args`) => `WebSearcher`
 
-Defined in: [web-searcher/src/searcher.ts:78](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L78)
+Defined in: [web-searcher/src/searcher.ts:78](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L78)
 
 Creates an instance of the registered search engine.
 
@@ -168,7 +168,7 @@ An instance of the search engine.
 
 > `static` **forEach**: (`cb`) => `void`
 
-Defined in: [web-searcher/src/searcher.ts:85](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L85)
+Defined in: [web-searcher/src/searcher.ts:85](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L85)
 
 Iterates over all registered engines.
 
@@ -190,7 +190,7 @@ Callback function to invoke for each registered engine.
 
 > `static` **get**: (`name`) => *typeof* `WebSearcher`
 
-Defined in: [web-searcher/src/searcher.ts:69](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L69)
+Defined in: [web-searcher/src/searcher.ts:69](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L69)
 
 Retrieves a registered search engine class by name.
 
@@ -214,7 +214,7 @@ The search engine class constructor.
 
 > `static` `optional` **name**: `string`
 
-Defined in: [web-searcher/src/searcher.ts:40](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L40)
+Defined in: [web-searcher/src/searcher.ts:40](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L40)
 
 Custom engine name. If not provided, it is derived from the class name.
 For example, `GoogleSearcher` becomes `Google`.
@@ -225,7 +225,7 @@ For example, `GoogleSearcher` becomes `Google`.
 
 > `static` **register**: (`ctor`, `options?`) => `boolean`
 
-Defined in: [web-searcher/src/searcher.ts:54](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L54)
+Defined in: [web-searcher/src/searcher.ts:54](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L54)
 
 Registers a search engine class.
 
@@ -255,7 +255,7 @@ Registration options. If a string is provided, it is used as the registered name
 
 > `static` **setAliases**: (`ctor`, ...`aliases`) => `void`
 
-Defined in: [web-searcher/src/searcher.ts:93](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L93)
+Defined in: [web-searcher/src/searcher.ts:93](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L93)
 
 Sets aliases for a registered engine.
 
@@ -283,7 +283,7 @@ Aliases to add.
 
 > `static` **unregister**: (`name?`) => `void`
 
-Defined in: [web-searcher/src/searcher.ts:61](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L61)
+Defined in: [web-searcher/src/searcher.ts:61](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L61)
 
 Unregisters a search engine.
 
@@ -307,7 +307,7 @@ The name or class to unregister.
 
 > **get** **pagination**(): [`PaginationConfig`](../interfaces/PaginationConfig.md) \| `undefined`
 
-Defined in: [web-searcher/src/searcher.ts:151](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L151)
+Defined in: [web-searcher/src/searcher.ts:151](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L151)
 
 Optional pagination configuration.
 Defines how the searcher navigates to subsequent pages.
@@ -326,7 +326,7 @@ If undefined, the searcher will only fetch the first page.
 
 > **get** `abstract` **template**(): `FetcherOptions`
 
-Defined in: [web-searcher/src/searcher.ts:143](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L143)
+Defined in: [web-searcher/src/searcher.ts:143](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L143)
 
 The declarative template for the fetch options.
 
@@ -356,7 +356,7 @@ get template() {
 
 > `protected` **createContext**(`options`): `FetchContext`
 
-Defined in: [web-searcher/src/searcher.ts:155](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L155)
+Defined in: [web-searcher/src/searcher.ts:155](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L155)
 
 #### Parameters
 
@@ -493,7 +493,7 @@ const { result, outputs } = await session.executeAll([
 
 > `protected` **formatOptions**(`options`): `Record`\<`string`, `any`\>
 
-Defined in: [web-searcher/src/searcher.ts:308](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L308)
+Defined in: [web-searcher/src/searcher.ts:308](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L308)
 
 Transforms standard options into engine-specific template variables.
 
@@ -561,7 +561,7 @@ A promise resolving to the session state, or undefined if no engine is initializ
 
 > **search**(`query`, `options`): `Promise`\<[`StandardSearchResult`](../interfaces/StandardSearchResult.md)[]\>
 
-Defined in: [web-searcher/src/searcher.ts:182](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L182)
+Defined in: [web-searcher/src/searcher.ts:182](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L182)
 
 Executes a search query.
 
@@ -594,7 +594,7 @@ A promise resolving to an array of standardized search results.
 
 > `protected` **transform**(`outputs`, `context`): `Promise`\<[`StandardSearchResult`](../interfaces/StandardSearchResult.md)[]\>
 
-Defined in: [web-searcher/src/searcher.ts:290](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L290)
+Defined in: [web-searcher/src/searcher.ts:290](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L290)
 
 Transform and clean the raw extracted results.
 
@@ -627,7 +627,7 @@ A promise resolving to an array of standardized search results.
 
 > `static` **search**(`engineName`, `query`, `options`): `Promise`\<[`StandardSearchResult`](../interfaces/StandardSearchResult.md)[]\>
 
-Defined in: [web-searcher/src/searcher.ts:106](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/searcher.ts#L106)
+Defined in: [web-searcher/src/searcher.ts:106](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/searcher.ts#L106)
 
 Static helper to execute a one-off search.
 

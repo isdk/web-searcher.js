@@ -6,7 +6,7 @@
 
 # Interface: PaginationConfig
 
-Defined in: [web-searcher/src/types.ts:26](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L26)
+Defined in: [web-searcher/src/types.ts:26](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L26)
 
 Configuration for pagination strategies.
 Defines how the searcher should navigate to the next page of results.
@@ -17,7 +17,7 @@ Defines how the searcher should navigate to the next page of results.
 
 > `optional` **increment**: `number`
 
-Defined in: [web-searcher/src/types.ts:53](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L53)
+Defined in: [web-searcher/src/types.ts:53](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L53)
 
 The increment step for each page.
 - If the parameter represents an item offset (like Google's 'start'), this might be 10.
@@ -35,7 +35,7 @@ The increment step for each page.
 
 > `optional` **nextButtonSelector**: `string`
 
-Defined in: [web-searcher/src/types.ts:59](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L59)
+Defined in: [web-searcher/src/types.ts:59](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L59)
 
 The CSS selector for the "Next" page button.
 Required if type is 'click-next'.
@@ -46,7 +46,7 @@ Required if type is 'click-next'.
 
 > `optional` **paramName**: `string`
 
-Defined in: [web-searcher/src/types.ts:39](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L39)
+Defined in: [web-searcher/src/types.ts:39](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L39)
 
 The name of the URL parameter used for pagination.
 Required if type is 'url-param'.
@@ -63,7 +63,7 @@ Required if type is 'url-param'.
 
 > `optional` **startValue**: `number`
 
-Defined in: [web-searcher/src/types.ts:45](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L45)
+Defined in: [web-searcher/src/types.ts:45](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L45)
 
 The starting value for the pagination parameter.
 
@@ -79,7 +79,7 @@ The starting value for the pagination parameter.
 
 > **type**: `"url-param"` \| `"click-next"`
 
-Defined in: [web-searcher/src/types.ts:32](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L32)
+Defined in: [web-searcher/src/types.ts:32](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L32)
 
 The type of pagination mechanism:
 - 'url-param': Pagination is handled by modifying URL parameters (e.g., `?page=2` or `?start=10`).

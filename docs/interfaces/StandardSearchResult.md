@@ -6,7 +6,7 @@
 
 # Interface: StandardSearchResult
 
-Defined in: [web-searcher/src/types.ts:5](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L5)
+Defined in: [web-searcher/src/types.ts:5](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L5)
 
 Interface representing a standardized search result item.
 This ensures consistency across different search engines.
@@ -23,7 +23,7 @@ Allows for engine-specific extra fields (e.g., rank, author, date).
 
 > `optional` **image**: `string`
 
-Defined in: [web-searcher/src/types.ts:16](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L16)
+Defined in: [web-searcher/src/types.ts:16](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L16)
 
 An optional image URL associated with the result.
 
@@ -33,7 +33,7 @@ An optional image URL associated with the result.
 
 > `optional` **snippet**: `string`
 
-Defined in: [web-searcher/src/types.ts:13](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L13)
+Defined in: [web-searcher/src/types.ts:13](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L13)
 
 A brief snippet or description of the result.
 
@@ -43,7 +43,7 @@ A brief snippet or description of the result.
 
 > **title**: `string`
 
-Defined in: [web-searcher/src/types.ts:7](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L7)
+Defined in: [web-searcher/src/types.ts:7](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L7)
 
 The title of the search result.
 
@@ -53,6 +53,6 @@ The title of the search result.
 
 > **url**: `string`
 
-Defined in: [web-searcher/src/types.ts:10](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L10)
+Defined in: [web-searcher/src/types.ts:10](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L10)
 
 The URL of the search result.

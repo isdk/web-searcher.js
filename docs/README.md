@@ -15,36 +15,41 @@ Building a robust search scraper involves more than just fetching a URL. You oft
 - **Data Cleaning**: Parse raw HTML and resolve redirect links.
 - **Flexibility**: Switch between HTTP (fast) and Browser (anti-bot) modes easily.
 
-This module encapsulates these patterns into a reusable `Searcher` class.
+This module encapsulates these patterns into a reusable `WebSearcher` class.
 
 ## 🚀 Quick Start
 
 ### 1. One-off Search
 
-Use the static `Searcher.search` method for quick, disposable tasks. It automatically creates a session, fetches results, and cleans up.
+> **⚠️ Note on `GoogleSearcher`**: The `GoogleSearcher` class used in these examples is a **demo implementation** included for educational purposes. It is not intended for production use.
+>
+> * It lacks advanced anti-bot handling (CAPTCHA solving, proxy rotation) required for scraping Google reliably at scale.
+> * The extracted data may be **inaccurate or misaligned** due to Google's frequent DOM changes and A/B testing.
+
+Use the static `WebSearcher.search` method for quick, disposable tasks. It automatically creates a session, fetches results, and cleans up.
 
 ```typescript
-import { Searcher } from '@isdk/web-fetcher/search';
-import { GoogleSearcher } from '@isdk/web-fetcher/search/engines/google';
+import { GoogleSearcher, WebSearcher } from '@isdk/web-fetcher';
 
 // Register the engine (only needs to be done once)
-Searcher.register(GoogleSearcher);
+WebSearcher.register(GoogleSearcher);
 
 // Search!
 // The 'limit' parameter ensures we fetch enough pages to get 20 results.
 // Note: The engine name is case-sensitive and derived from the class name (e.g., 'GoogleSearcher' -> 'Google')
-const results = await Searcher.search('Google', 'open source', { limit: 20 });
+const results = await WebSearcher.search('Google', 'open source', { limit: 20 });
 
 console.log(results);
 ```
 
 ### 2. Stateful Session
 
-Since `Searcher` extends `FetchSession`, you can instantiate it to keep cookies and storage alive across multiple requests. This is useful for authenticated searches or avoiding bot detection by behaving like a human.
+Since `WebSearcher` extends `FetchSession`, you can instantiate it to keep cookies and storage alive across multiple requests. This is useful for authenticated searches or avoiding bot detection by behaving like a human.
 
 **Configuration Precedence:**
 When creating a session, options are merged in the following order:
-1. **Template Default**: Defined in the Searcher class (highest priority for structural options).
+
+1. **Template Default**: Defined in the WebSearcher class (highest priority for structural options).
 2. **User Options**: Passed to the constructor (can fill missing defaults or override if allowed).
 
 *Note: If the template sets `engine: 'auto'` (default), user-provided `engine` option will be respected.*
@@ -75,11 +80,11 @@ try {
 
 ## 🛠️ Implementing a New Search Engine
 
-To support a new website, create a class that extends `Searcher`.
+To support a new website, create a class that extends `WebSearcher`.
 
 ### Step 1: Define the Template
 
-To support a new website, create a class that extends `Searcher`. The engine name is automatically derived from the class name (e.g., `MyBlogSearcher` -> `MyBlog`), but you can customize it and add aliases using static properties.
+To support a new website, create a class that extends `WebSearcher`. The engine name is automatically derived from the class name (e.g., `MyBlogSearcher` -> `MyBlog`), but you can customize it and add aliases using static properties.
 
 The `template` property defines the "Blueprint" for your search. It's a standard `FetcherOptions` object but supports **variable injection**.
 
@@ -91,10 +96,10 @@ Supported variables:
 - `${limit}`: The requested limit.
 
 ```typescript
-import { Searcher } from '@isdk/web-fetcher/search';
+import { WebSearcher } from '@isdk/web-fetcher/search';
 import { FetcherOptions } from '@isdk/web-fetcher/types';
 
-export class MyBlogSearcher extends Searcher {
+export class MyBlogSearcher extends WebSearcher {
   static name = 'blog'; // Custom name (case-sensitive)
   static alias = ['myblog', 'news'];
 
@@ -124,7 +129,7 @@ export class MyBlogSearcher extends Searcher {
 
 ### Step 2: Configure Pagination
 
-Tell the `Searcher` how to navigate to the next page. Implement the `pagination` getter.
+Tell the `WebSearcher` how to navigate to the next page. Implement the `pagination` getter.
 
 #### Option A: URL Parameters (Offset/Page)
 
@@ -156,7 +161,7 @@ protected override get pagination() {
 
 ### Step 3: Transform & Clean Data
 
-Override `transform` to clean data. Since `Searcher` is a `FetchSession`, you can also make extra requests (like resolving redirects) using `this`.
+Override `transform` to clean data. Since `WebSearcher` is a `FetchSession`, you can also make extra requests (like resolving redirects) using `this`.
 
 ```typescript
 protected override async transform(outputs: Record<string, any>) {
@@ -175,7 +180,7 @@ protected override async transform(outputs: Record<string, any>) {
 
 ### Auto-Pagination & Filtering
 
-The `Searcher` is smart. If you request `limit: 10`, but the first page only returns 5 results (or if your `transform` filters out results), it will automatically fetch the next page until the limit is met.
+The `WebSearcher` is smart. If you request `limit: 10`, but the first page only returns 5 results (or if your `transform` filters out results), it will automatically fetch the next page until the limit is met.
 
 ### User-defined Transforms
 

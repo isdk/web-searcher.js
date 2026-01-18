@@ -6,7 +6,7 @@
 
 # Interface: SearchContext
 
-Defined in: [web-searcher/src/types.ts:65](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L65)
+Defined in: [web-searcher/src/types.ts:65](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L65)
 
 Context object passed to the transform function.
 
@@ -16,7 +16,7 @@ Context object passed to the transform function.
 
 > `optional` **limit**: `number`
 
-Defined in: [web-searcher/src/types.ts:73](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L73)
+Defined in: [web-searcher/src/types.ts:73](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L73)
 
 The requested limit of results.
 
@@ -26,7 +26,7 @@ The requested limit of results.
 
 > **page**: `number`
 
-Defined in: [web-searcher/src/types.ts:70](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L70)
+Defined in: [web-searcher/src/types.ts:70](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L70)
 
 The current page index (0-based).
 
@@ -36,6 +36,6 @@ The current page index (0-based).
 
 > **query**: `string`
 
-Defined in: [web-searcher/src/types.ts:67](https://github.com/isdk/web-searcher.js/blob/e9a6e5ec9526780489427743389b927a5c16db5c/src/types.ts#L67)
+Defined in: [web-searcher/src/types.ts:67](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L67)
 
 The original search query.
