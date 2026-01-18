@@ -71,17 +71,29 @@
   ],
   "keywords": [
     "web",
-    "fetch",
+    "search",
+    "searcher",
+    "scraper",
     "crawler",
     "spider",
-    "structure",
-    "data"
+    "google",
+    "automation",
+    "headless",
+    "pagination",
+    "data-mining",
+    "fetcher"
   ],
   "maintainers": [
     "Riceball LEE <snowyu.lee@gmail.com>"
   ],
   "engines": {
     "node": ">=20.11.1"
+  },
+  "bugs": {
+    "url": "https://github.com/isdk/web-searcher.js/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "types": "./dist/index.d.ts"
 }
