@@ -1,6 +1,6 @@
 {
   "name": "@isdk/web-searcher",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A high-level framework for building search engine scrapers, supporting multi-page navigation, session persistence, and result standardization.",
   "license": "MIT",
   "author": "Riceball LEE <snowyu.lee@gmail.com>",
