@@ -42,27 +42,26 @@ console.log(results);
 
 由于 `WebSearcher` 继承自 `FetchSession`，您可以实例化它以在多个请求之间保持 Cookie 和存储。这对于需要登录的搜索或通过模拟人类行为来避免反爬虫非常有用。
 
-**配置优先级：**
-创建会话时，选项按以下顺序合并：
+### 🛡️ 核心准则：模板即法律 (Template is Law)
 
-1. **模板默认 (Template Default)**：在 WebSearcher 类中定义（结构化选项的优先级最高）。
-2. **用户选项 (User Options)**：传递给构造函数的选项（可填充缺失的默认值，或在允许的情况下进行覆盖）。
+在 `WebSearcher` 子类中定义的 `template` 是权威的“蓝图”。
 
-*注：如果模板设置了 `engine: 'auto'`（默认值），则会尊重用户提供的 `engine` 选项。*
+- **模板优先级**：如果模板定义了某个属性（如 `engine: 'browser'`、特定的 `headers` 等），该值将被**锁定**，用户选项无法覆盖。这确保了抓取逻辑的稳定性。
+- **用户灵活性**：对于模板中**未**显式锁定的属性（如 `proxy`、`timeoutMs` 或自定义变量），用户可以在构造函数或 `search()` 方法中自由设置。
 
 ```typescript
 // 创建一个持久化会话
 const google = new GoogleSearcher({
-  headless: false, // 覆盖默认选项 (例如显示浏览器)
+  headless: false, // 如果模板中未锁定，则可以覆盖
   proxy: 'http://my-proxy:8080',
-  timeoutMs: 30000 // 为请求设置全局超时
+  timeoutMs: 30000 // 有效（假设 GoogleSearcher 模板未显式设置 timeoutMs）
 });
 
 try {
   // 第一次查询
   // 您还可以传递运行时选项来覆盖会话默认值或注入变量
   const results1 = await google.search('term A', {
-    timeoutMs: 60000, // 仅针对此搜索覆盖超时时间
+    timeoutMs: 60000, // 针对此次搜索覆盖超时时间
     extraParam: 'value' // 可以在模板中通过 ${extraParam} 使用
   });
 
@@ -174,21 +173,40 @@ protected override async transform(outputs: Record<string, any>) {
 
 ## 🧠 高级概念
 
-### 自动分页与过滤
+### 自动分页：`limit` 与 `maxPages` 的关系
 
-`WebSearcher` 是智能的。如果您请求 `limit: 10`，但第一页只返回了 5 条结果（或者如果您的 `transform` 过滤掉了一些结果），它会自动抓取下一页，直到满足限制。
+`WebSearcher` 的设计是以结果为导向的。当您调用 `search()` 时，您只需要指定想要多少条结果，搜索器会自动处理翻页逻辑。
+
+- **`limit`**: 您期望获取的结果总数。
+- **`maxPages`**: 安全阈值。它限制了搜索器为了满足 `limit` 而允许抓取的最大页数（翻页循环次数）。
+
+**协作逻辑示例：**
+如果您请求 `{ limit: 50 }`，但每页只有 5 条结果：
+
+1. 搜索器抓取第 1 页（得到 5 条）。
+2. 发现 `5 < 50`，于是自动抓取第 2 页。
+3. 循环持续，直到获取 50 条结果 **或者** 达到了 `maxPages` 的限制（默认为 10 页）。
+
+这种机制可以防止因“下一页”选择器失效或引擎陷入死循环而导致的无限抓取，保护您的系统资源。
 
 ### 用户自定义转换 (User-defined Transforms)
 
 用户可以在调用 `search` 时提供自己的 `transform`。它会在引擎内置的转换**之后**运行。
 
+这在**过滤广告**或无关内容时非常强大。如果用户过滤掉了某些结果，自动分页逻辑会**自动启动**以抓取更多页面，确保最终返回给您的结果列表既满足 `limit` 数量要求，又只包含有效的条目。
+
 ```typescript
 await google.search('test', {
-  transform: (results) => results.filter(r => r.url.endsWith('.pdf'))
+  limit: 20,
+  // 示例：过滤掉赞助商结果（广告）并只保留 PDF
+  transform: (results) => {
+    return results.filter(r => {
+      const isAd = r.isSponsored || r.url.includes('googleadservices.com');
+      return !isAd && r.url.endsWith('.pdf');
+    });
+  }
 });
 ```
-
-如果用户过滤掉了结果，自动分页逻辑会启动以抓取更多页面来满足请求的 limit。
 
 ### 标准化搜索选项
 

@@ -14,8 +14,23 @@ export interface StandardSearchResult {
   
   /** An optional image URL associated with the result. */
   image?: string;
+
+  /** The date the result was published or last updated. */
+  date?: string | Date;
+
+  /** The author or source name of the result. */
+  author?: string;
+
+  /** The favicon URL of the source website. */
+  favicon?: string;
+
+  /** The rank or position of the result (usually 1-indexed). */
+  rank?: number;
+
+  /** The source website name (e.g., 'GitHub', 'StackOverflow'). */
+  source?: string;
   
-  /** Allows for engine-specific extra fields (e.g., rank, author, date). */
+  /** Allows for engine-specific extra fields (e.g., siteIcon, category). */
   [key: string]: any; 
 }
 
@@ -57,6 +72,17 @@ export interface PaginationConfig {
    * Required if type is 'click-next'.
    */
   nextButtonSelector?: string;
+
+  /**
+   * The safety threshold for the maximum number of pages to fetch automatically 
+   * in a single search call.
+   * 
+   * Even if the requested `limit` of results hasn't been reached, the searcher 
+   * will stop after this many pages to prevent infinite loops or excessive API usage.
+   * 
+   * @default 10
+   */
+  maxPages?: number;
 }
 
 /**
@@ -94,6 +120,16 @@ export type SafeSearchLevel = 'off' | 'moderate' | 'strict';
 export interface SearchOptions {
   /** The maximum number of results to retrieve. */
   limit?: number;
+
+  /**
+   * The maximum number of pages (fetch cycles) allowed to reach the requested `limit`.
+   * 
+   * This is a safety guard. If the `limit` is high but each page has few results, 
+   * the searcher will stop once this page count is reached.
+   * 
+   * If not provided, it defaults to the value in `PaginationConfig` or 10.
+   */
+  maxPages?: number;
   
   /**
    * Date range for the search results.

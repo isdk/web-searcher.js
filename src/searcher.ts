@@ -189,6 +189,7 @@ export abstract class WebSearcher extends FetchSession {
     let page = 0;
     const startValue = this.pagination?.startValue ?? 0;
     const increment = this.pagination?.increment ?? 1;
+    const maxPages = options.maxPages || this.pagination?.maxPages || 10;
 
     // Use the template to determine the base session options (like engine preference)
     // We merge these into the session's context via createContext -> super().
@@ -271,7 +272,7 @@ export abstract class WebSearcher extends FetchSession {
       if (allResults.length >= limit || !this.pagination) break;
 
       page++;
-      if (page > 10) break; // Hard limit
+      if (page >= maxPages) break;
     }
 
     return allResults.slice(0, limit);

@@ -42,27 +42,26 @@ console.log(results);
 
 Since `WebSearcher` extends `FetchSession`, you can instantiate it to keep cookies and storage alive across multiple requests. This is useful for authenticated searches or avoiding bot detection by behaving like a human.
 
-**Configuration Precedence:**
-When creating a session, options are merged in the following order:
+### 🛡️ Core Principle: Template is Law
 
-1. **Template Default**: Defined in the WebSearcher class (highest priority for structural options).
-2. **User Options**: Passed to the constructor (can fill missing defaults or override if allowed).
+The `template` defined in the `WebSearcher` subclass acts as the authoritative "blueprint".
 
-*Note: If the template sets `engine: 'auto'` (default), user-provided `engine` option will be respected.*
+- **Template Priority**: If the template defines a property (e.g., `engine: 'browser'`, `headers`), that value is **locked** and cannot be overridden by user options. This ensures engine stability.
+- **User Flexibility**: Properties **not** explicitly defined in the template (such as `proxy`, `timeoutMs`, or custom variables) can be freely set by the user in the constructor or `search()` method.
 
 ```typescript
 // Create a persistent session
 const google = new GoogleSearcher({
-  headless: false, // Override default options (e.g., show browser)
+  headless: false, // Override if not locked in template
   proxy: 'http://my-proxy:8080',
-  timeoutMs: 30000 // Set a global timeout for requests
+  timeoutMs: 30000 // Set a global timeout (valid if template doesn't define it)
 });
 
 try {
   // First query
   // You can also pass runtime options to override session defaults or inject variables
   const results1 = await google.search('term A', {
-    timeoutMs: 60000, // Override timeout just for this search
+    timeoutMs: 60000, // Override session timeout just for this search
     extraParam: 'value' // Can be used in template as ${extraParam}
   });
 
@@ -172,23 +171,42 @@ protected override async transform(outputs: Record<string, any>) {
 }
 ```
 
-## 🧠 Advanced Concepts
+### 🧠 Advanced Concepts
 
-### Auto-Pagination & Filtering
+### Auto-Pagination: `limit` vs `maxPages`
 
-The `WebSearcher` is smart. If you request `limit: 10`, but the first page only returns 5 results (or if your `transform` filters out results), it will automatically fetch the next page until the limit is met.
+The `WebSearcher` is designed to be result-oriented. When you call `search()`, you specify how many results you want, and the searcher handles the pagination logic.
+
+- **`limit`**: Your target number of total results.
+- **`maxPages`**: The safety threshold. It limits how many pages (fetch cycles) the searcher is allowed to navigate to satisfy your `limit`.
+
+**Example Logic:**
+If you request `{ limit: 50 }` but each page only has 5 results:
+
+1. The searcher fetches page 1 (5 results).
+2. It sees `5 < 50`, so it fetches page 2.
+3. It continues until it has 50 results **OR** it reaches `maxPages` (default 10).
+
+This prevent infinite loops if the "Next" button selector is broken or if the search engine keeps returning the same results.
 
 ### User-defined Transforms
 
 Users can provide their own `transform` when calling `search`. This runs **after** the engine's built-in transform.
 
+This is extremely powerful for **filtering out ads** or irrelevant content. If the user filters out results, the auto-pagination logic will automatically kick in to fetch more pages to ensure the final result list meets your requested `limit` with only valid entries.
+
 ```typescript
 await google.search('test', {
-  transform: (results) => results.filter(r => r.url.endsWith('.pdf'))
+  limit: 20,
+  // Example: Filter out sponsored results and only keep PDFs
+  transform: (results) => {
+    return results.filter(r => {
+      const isAd = r.isSponsored || r.url.includes('googleadservices.com');
+      return !isAd && r.url.endsWith('.pdf');
+    });
+  }
 });
 ```
-
-If the user filters out results, the auto-pagination logic will kick in to fetch more pages to meet the requested limit.
 
 ### Standardized Search Options
 
