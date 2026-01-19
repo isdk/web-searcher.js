@@ -6,7 +6,7 @@
 
 # Interface: SearchOptions
 
-Defined in: [web-searcher/src/types.ts:94](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L94)
+Defined in: [web-searcher/src/types.ts:120](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L120)
 
 Options provided when executing a search.
 
@@ -22,7 +22,7 @@ Any other custom variables to be injected into the template.
 
 > `optional` **category**: [`SearchCategory`](../type-aliases/SearchCategory.md)
 
-Defined in: [web-searcher/src/types.ts:108](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L108)
+Defined in: [web-searcher/src/types.ts:144](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L144)
 
 The category of results to return.
 Default: 'all' (web search)
@@ -33,7 +33,7 @@ Default: 'all' (web search)
 
 > `optional` **language**: `string`
 
-Defined in: [web-searcher/src/types.ts:118](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L118)
+Defined in: [web-searcher/src/types.ts:154](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L154)
 
 Language code (ISO 639-1) for the interface or results (e.g., 'en', 'zh-CN').
 
@@ -43,9 +43,24 @@ Language code (ISO 639-1) for the interface or results (e.g., 'en', 'zh-CN').
 
 > `optional` **limit**: `number`
 
-Defined in: [web-searcher/src/types.ts:96](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L96)
+Defined in: [web-searcher/src/types.ts:122](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L122)
 
 The maximum number of results to retrieve.
+
+***
+
+### maxPages?
+
+> `optional` **maxPages**: `number`
+
+Defined in: [web-searcher/src/types.ts:132](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L132)
+
+The maximum number of pages (fetch cycles) allowed to reach the requested `limit`.
+
+This is a safety guard. If the `limit` is high but each page has few results, 
+the searcher will stop once this page count is reached.
+
+If not provided, it defaults to the value in `PaginationConfig` or 10.
 
 ***
 
@@ -53,7 +68,7 @@ The maximum number of results to retrieve.
 
 > `optional` **region**: `string`
 
-Defined in: [web-searcher/src/types.ts:113](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L113)
+Defined in: [web-searcher/src/types.ts:149](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L149)
 
 Region code (ISO 3166-1 alpha-2) to bias results (e.g., 'US', 'CN', 'JP').
 
@@ -63,7 +78,7 @@ Region code (ISO 3166-1 alpha-2) to bias results (e.g., 'US', 'CN', 'JP').
 
 > `optional` **safeSearch**: [`SafeSearchLevel`](../type-aliases/SafeSearchLevel.md)
 
-Defined in: [web-searcher/src/types.ts:124](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L124)
+Defined in: [web-searcher/src/types.ts:160](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L160)
 
 Safe search filtering level.
 Default: engine dependent (usually 'moderate' or 'strict' by default).
@@ -74,7 +89,7 @@ Default: engine dependent (usually 'moderate' or 'strict' by default).
 
 > `optional` **timeRange**: [`SearchTimeRange`](../type-aliases/SearchTimeRange.md)
 
-Defined in: [web-searcher/src/types.ts:102](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L102)
+Defined in: [web-searcher/src/types.ts:138](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L138)
 
 Date range for the search results.
 Default: 'all'
@@ -85,7 +100,7 @@ Default: 'all'
 
 > `optional` **transform**: (`results`, `context`) => [`StandardSearchResult`](StandardSearchResult.md)[] \| `Promise`\<[`StandardSearchResult`](StandardSearchResult.md)[]\>
 
-Defined in: [web-searcher/src/types.ts:130](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L130)
+Defined in: [web-searcher/src/types.ts:166](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L166)
 
 A custom transform function to filter or modify results at runtime.
 This runs AFTER the engine-level transform.

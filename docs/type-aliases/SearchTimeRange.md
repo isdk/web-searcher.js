@@ -8,4 +8,4 @@
 
 > **SearchTimeRange** = [`SearchTimeRangePreset`](SearchTimeRangePreset.md) \| [`CustomTimeRange`](../interfaces/CustomTimeRange.md)
 
-Defined in: [web-searcher/src/types.ts:85](https://github.com/isdk/web-searcher.js/blob/6ce291d521b8526526b386fab6dda19d36d0bece/src/types.ts#L85)
+Defined in: [web-searcher/src/types.ts:111](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L111)
