@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.1.3](https://github.com/isdk/web-searcher.js/compare/v0.1.2...v0.1.3) (2026-01-19)
+
+
+### Features
+
+* enhance StandardSearchResult and add maxPages safety threshold for search ([e17f1bc](https://github.com/isdk/web-searcher.js/commit/e17f1bcb40984e389c2901da9e3b4886a969899a))
+
+
+### Bug Fixes
+
+* **build:** only use current tsconfig.spec.json to test ([ef4bedf](https://github.com/isdk/web-searcher.js/commit/ef4bedfe25f2359a56f93bb74802b3ad4bfd3986))
+
 ## [0.1.2](https://github.com/isdk/web-searcher.js/compare/v0.1.1...v0.1.2) (2026-01-18)
 
 ## 0.1.1 (2026-01-18)
