@@ -6,7 +6,7 @@
 
 # Interface: CustomTimeRange
 
-Defined in: [web-searcher/src/types.ts:104](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L104)
+Defined in: [web-searcher/src/types.ts:104](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L104)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [web-searcher/src/types.ts:104](https://github.com/isdk/web-searcher
 
 > **from**: `string` \| `Date`
 
-Defined in: [web-searcher/src/types.ts:106](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L106)
+Defined in: [web-searcher/src/types.ts:106](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L106)
 
 Start date (Date object or string like 'YYYY-MM-DD').
 
@@ -24,6 +24,6 @@ Start date (Date object or string like 'YYYY-MM-DD').
 
 > `optional` **to**: `string` \| `Date`
 
-Defined in: [web-searcher/src/types.ts:108](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L108)
+Defined in: [web-searcher/src/types.ts:108](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L108)
 
 End date (Date object or string like 'YYYY-MM-DD'). Defaults to current date if omitted.

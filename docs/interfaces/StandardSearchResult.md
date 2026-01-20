@@ -6,7 +6,7 @@
 
 # Interface: StandardSearchResult
 
-Defined in: [web-searcher/src/types.ts:5](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L5)
+Defined in: [web-searcher/src/types.ts:5](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L5)
 
 Interface representing a standardized search result item.
 This ensures consistency across different search engines.
@@ -23,7 +23,7 @@ Allows for engine-specific extra fields (e.g., siteIcon, category).
 
 > `optional` **author**: `string`
 
-Defined in: [web-searcher/src/types.ts:22](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L22)
+Defined in: [web-searcher/src/types.ts:22](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L22)
 
 The author or source name of the result.
 
@@ -33,7 +33,7 @@ The author or source name of the result.
 
 > `optional` **date**: `string` \| `Date`
 
-Defined in: [web-searcher/src/types.ts:19](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L19)
+Defined in: [web-searcher/src/types.ts:19](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L19)
 
 The date the result was published or last updated.
 
@@ -43,7 +43,7 @@ The date the result was published or last updated.
 
 > `optional` **favicon**: `string`
 
-Defined in: [web-searcher/src/types.ts:25](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L25)
+Defined in: [web-searcher/src/types.ts:25](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L25)
 
 The favicon URL of the source website.
 
@@ -53,7 +53,7 @@ The favicon URL of the source website.
 
 > `optional` **image**: `string`
 
-Defined in: [web-searcher/src/types.ts:16](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L16)
+Defined in: [web-searcher/src/types.ts:16](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L16)
 
 An optional image URL associated with the result.
 
@@ -63,7 +63,7 @@ An optional image URL associated with the result.
 
 > `optional` **rank**: `number`
 
-Defined in: [web-searcher/src/types.ts:28](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L28)
+Defined in: [web-searcher/src/types.ts:28](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L28)
 
 The rank or position of the result (usually 1-indexed).
 
@@ -73,7 +73,7 @@ The rank or position of the result (usually 1-indexed).
 
 > `optional` **snippet**: `string`
 
-Defined in: [web-searcher/src/types.ts:13](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L13)
+Defined in: [web-searcher/src/types.ts:13](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L13)
 
 A brief snippet or description of the result.
 
@@ -83,7 +83,7 @@ A brief snippet or description of the result.
 
 > `optional` **source**: `string`
 
-Defined in: [web-searcher/src/types.ts:31](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L31)
+Defined in: [web-searcher/src/types.ts:31](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L31)
 
 The source website name (e.g., 'GitHub', 'StackOverflow').
 
@@ -93,7 +93,7 @@ The source website name (e.g., 'GitHub', 'StackOverflow').
 
 > **title**: `string`
 
-Defined in: [web-searcher/src/types.ts:7](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L7)
+Defined in: [web-searcher/src/types.ts:7](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L7)
 
 The title of the search result.
 
@@ -103,6 +103,6 @@ The title of the search result.
 
 > **url**: `string`
 
-Defined in: [web-searcher/src/types.ts:10](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/types.ts#L10)
+Defined in: [web-searcher/src/types.ts:10](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L10)
 
 The URL of the search result.

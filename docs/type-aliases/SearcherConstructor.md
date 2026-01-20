@@ -8,7 +8,7 @@
 
 > **SearcherConstructor** = (`options?`) => [`WebSearcher`](../classes/WebSearcher.md)
 
-Defined in: [web-searcher/src/searcher.ts:10](https://github.com/isdk/web-searcher.js/blob/e17f1bcb40984e389c2901da9e3b4886a969899a/src/searcher.ts#L10)
+Defined in: [web-searcher/src/searcher.ts:10](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L10)
 
 Constructor definition for Searcher subclasses.
 
