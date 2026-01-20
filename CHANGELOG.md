@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.1.4](https://github.com/isdk/web-searcher.js/compare/v0.1.3...v0.1.4) (2026-01-20)
+
+
+### Refactor
+
+* enhance search action merging and intelligent navigation ([7bcd8cc](https://github.com/isdk/web-searcher.js/commit/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea))
+
 ## [0.1.3](https://github.com/isdk/web-searcher.js/compare/v0.1.2...v0.1.3) (2026-01-19)
 
 
