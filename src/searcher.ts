@@ -215,33 +215,36 @@ export abstract class WebSearcher extends FetchSession {
       const templateWithOptions = injectVariables(this.template, variables);
 
       // 4. Merge runtime options
-      // Template takes precedence (via defaultsDeep logic in createContext),
-      // but here we ensure any runtime-only options (like timeoutMs provided in search call)
-      // are mixed in if not strictly defined by template.
-      // defaultsDeep(dest, source) -> keeps dest, fills from source.
-      const currentOptions = defaultsDeep({}, templateWithOptions, options) as FetcherOptions;
+      // Template actions take absolute precedence. User cannot override actions via options.
+      // We exclude 'actions' from the user options before merging to prevent array mixing by defaultsDeep.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { actions: _ignoredUserActions, ...userOptionsNoActions } = options;
+      const currentOptions = defaultsDeep({}, templateWithOptions, userOptionsNoActions) as FetcherOptions;
 
       // 5. Prepare Actions
       const actions: FetchActionOptions[] = [];
+      const templateActions = currentOptions.actions || [];
 
       // Handling navigation logic
       if (page === 0 || this.pagination?.type === 'url-param') {
         if (currentOptions.url) {
-          actions.push({ id: 'goto', params: { url: currentOptions.url } });
+          // Check if the template explicitly defines a 'goto' for this exact URL.
+          // If so, we skip the automatic injection to avoid duplicates.
+          const hasExplicitGoto = templateActions.some(
+            a => (a.id ?? a.name ?? a.action) === 'goto' && a.params?.url === currentOptions.url
+          );
+
+          if (!hasExplicitGoto) {
+            actions.push({ id: 'goto', params: { url: currentOptions.url } });
+          }
         }
       } else if (this.pagination?.type === 'click-next' && this.pagination.nextButtonSelector) {
         actions.push({ id: 'click', params: { selector: this.pagination.nextButtonSelector } });
         actions.push({ id: 'waitFor', params: { networkIdle: true, ms: 500 } });
       }
 
-      // Append template actions (excluding duplicate goto)
-      if (currentOptions.actions) {
-        const templateActions = currentOptions.actions.filter(a => {
-          if (actions.length > 0 && actions[0].id === 'goto' && a.id === 'goto') return false;
-          return true;
-        });
-        actions.push(...templateActions);
-      }
+      // Append template actions
+      actions.push(...templateActions);
 
       // 6. Execute the fetch actions
       // Note: We use executeAll from FetchSession (this)

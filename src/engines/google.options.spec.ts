@@ -12,6 +12,7 @@ describe('GoogleSearcher Options', () => {
   const searcher = new TestGoogleSearcher();
 
   it('should map timeRange presets correctly', () => {
+    expect(searcher.testFormatOptions({ timeRange: 'hour' })).toEqual({ tbs: 'qdr:h' });
     expect(searcher.testFormatOptions({ timeRange: 'day' })).toEqual({ tbs: 'qdr:d' });
     expect(searcher.testFormatOptions({ timeRange: 'week' })).toEqual({ tbs: 'qdr:w' });
     expect(searcher.testFormatOptions({ timeRange: 'month' })).toEqual({ tbs: 'qdr:m' });

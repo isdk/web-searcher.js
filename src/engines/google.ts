@@ -86,6 +86,7 @@ export class GoogleSearcher extends WebSearcher {
     if (options.timeRange) {
       if (typeof options.timeRange === 'string') {
         const timeMap: Record<string, string> = {
+          hour: 'qdr:h',
           day: 'qdr:d',
           week: 'qdr:w',
           month: 'qdr:m',

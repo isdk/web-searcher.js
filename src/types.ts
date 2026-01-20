@@ -99,7 +99,7 @@ export interface SearchContext {
   limit?: number;
 }
 
-export type SearchTimeRangePreset = 'all' | 'day' | 'week' | 'month' | 'year';
+export type SearchTimeRangePreset = 'all' | 'hour' | 'day' | 'week' | 'month' | 'year';
 
 export interface CustomTimeRange {
   /** Start date (Date object or string like 'YYYY-MM-DD'). */

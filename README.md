@@ -47,6 +47,7 @@ Since `WebSearcher` extends `FetchSession`, you can instantiate it to keep cooki
 The `template` defined in the `WebSearcher` subclass acts as the authoritative "blueprint".
 
 - **Template Priority**: If the template defines a property (e.g., `engine: 'browser'`, `headers`), that value is **locked** and cannot be overridden by user options. This ensures engine stability.
+- **Immutable Actions**: The `actions` array in the template is strictly protected. Users cannot append, replace, or modify the execution steps via `options`. This prevents external logic from breaking the scraper's flow.
 - **User Flexibility**: Properties **not** explicitly defined in the template (such as `proxy`, `timeoutMs`, or custom variables) can be freely set by the user in the constructor or `search()` method.
 
 ```typescript
@@ -56,7 +57,17 @@ const google = new GoogleSearcher({
   proxy: 'http://my-proxy:8080',
   timeoutMs: 30000 // Set a global timeout (valid if template doesn't define it)
 });
+```
 
+### 🧠 Intelligent Navigation (Goto)
+
+The `WebSearcher` automatically manages navigation to the search URL.
+
+1. **Auto-Injection**: If your template does **not** include a `goto` action, the searcher automatically inserts one at the beginning of the action list, pointing to the resolved `url` (with query variables injected).
+2. **Manual Control**: If you explicitly add a `goto` action in your template that matches the resolved URL, the searcher detects this duplicate and **skips** the automatic injection. This gives you full control to add headers, referrer, or other specific parameters to the navigation step if needed.
+3. **Multi-Step Flows**: You can define multiple `goto` actions in your template (e.g., visit a login page first). The searcher will still prepend the main search URL navigation unless one of your `goto` actions matches it exactly.
+
+```typescript
 try {
   // First query
   // You can also pass runtime options to override session defaults or inject variables
@@ -215,7 +226,7 @@ When calling `search()`, you can provide standardized options that the search en
 ```typescript
 const results = await google.search('open source', {
   limit: 20,
-  timeRange: 'month',       // 'day', 'week', 'month', 'year'
+  timeRange: 'month',       // 'hour', 'day', 'week', 'month', 'year'
   // Or custom range:
   // timeRange: { from: '2023-01-01', to: '2023-12-31' },
   category: 'news',         // 'all', 'images', 'videos', 'news'

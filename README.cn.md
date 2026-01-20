@@ -47,6 +47,7 @@ console.log(results);
 在 `WebSearcher` 子类中定义的 `template` 是权威的“蓝图”。
 
 - **模板优先级**：如果模板定义了某个属性（如 `engine: 'browser'`、特定的 `headers` 等），该值将被**锁定**，用户选项无法覆盖。这确保了抓取逻辑的稳定性。
+- **Actions 不可变性**：模板中的 `actions` 数组受到严格保护。用户无法通过 `options` 追加、替换或修改执行步骤。这防止了外部逻辑破坏爬虫的执行流程。
 - **用户灵活性**：对于模板中**未**显式锁定的属性（如 `proxy`、`timeoutMs` 或自定义变量），用户可以在构造函数或 `search()` 方法中自由设置。
 
 ```typescript
@@ -56,7 +57,17 @@ const google = new GoogleSearcher({
   proxy: 'http://my-proxy:8080',
   timeoutMs: 30000 // 有效（假设 GoogleSearcher 模板未显式设置 timeoutMs）
 });
+```
 
+### 🧠 智能导航 (Goto)
+
+`WebSearcher` 会自动管理前往搜索 URL 的导航。
+
+1. **自动注入**：如果你的模板**不**包含 `goto` 动作，搜索器会自动在动作列表开头插入一个指向解析后的 `url`（已注入查询变量）的 `goto` 动作。
+2. **手动控制**：如果你在模板中显式添加了一个匹配解析后 URL 的 `goto` 动作，搜索器会检测到重复并**跳过**自动注入。这让你能完全控制导航步骤（例如添加 headers、referrer 或其他特定参数）。
+3. **多步流程**：你可以在模板中定义多个 `goto` 动作（例如先访问登录页）。搜索器仍然会预置主搜索 URL 的导航，除非你的 `goto` 动作之一与之精确匹配。
+
+```typescript
 try {
   // 第一次查询
   // 您还可以传递运行时选项来覆盖会话默认值或注入变量
@@ -215,7 +226,7 @@ await google.search('test', {
 ```typescript
 const results = await google.search('open source', {
   limit: 20,
-  timeRange: 'month',       // 'day', 'week', 'month', 'year'
+  timeRange: 'month',       // 'hour', 'day', 'week', 'month', 'year'
   // 或自定义范围:
   // timeRange: { from: '2023-01-01', to: '2023-12-31' },
   category: 'news',         // 'all', 'images', 'videos', 'news'
