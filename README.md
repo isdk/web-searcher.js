@@ -19,8 +19,9 @@ This module encapsulates these patterns into a reusable `WebSearcher` class.
 
 > **⚠️ Note on `GoogleSearcher`**: The `GoogleSearcher` class used in these examples is a **demo implementation** included for educational purposes. It is not intended for production use.
 >
-> * It lacks advanced anti-bot handling (CAPTCHA solving, proxy rotation) required for scraping Google reliably at scale.
-> * The extracted data may be **inaccurate or misaligned** due to Google's frequent DOM changes and A/B testing.
+> * **Strict Anti-Bot Detection**: Currently, it has been found that even when attempting to simulate simple "human behavior" in `browser` mode (such as waiting for a few seconds before automatically filling in the search box and submitting), it is still detected as an automated program by Google. This indicates that simple operation simulation is not enough to pass the detection.
+> * **Scalability Limitations**: It lacks advanced countermeasures like CAPTCHA solving, fingerprint spoofing, or high-quality proxy rotation required for reliable scraping.
+> * **Fragility**: The extracted data may be **inaccurate or misaligned** due to Google's frequent DOM changes and A/B testing.
 
 Use the static `WebSearcher.search` method for quick, disposable tasks. It automatically creates a session, fetches results, and cleans up.
 
