@@ -244,6 +244,36 @@ const results = await google.search('open source', {
 });
 ```
 
+#### 搜索选项参考
+
+| 选项 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `limit` | `number` | 期望获取的结果总数。搜索器会自动翻页以达到此数量。 |
+| `maxPages` | `number` | 最大抓取页数（翻页循环次数）。用于防止无限循环的安全阈值。默认值：`10`。 |
+| `timeRange` | `string` \| `object` | 按时间过滤。预设值：`'all'`, `'hour'`, `'day'`, `'week'`, `'month'`, `'year'`。<br/> 或自定义范围 `{ from: Date\|string, to?: Date\|string }` |
+| `category` | `string` | 搜索分类：`'all'`, `'images'`, `'videos'`, `'news'`。 |
+| `region` | `string` | ISO 3166-1 alpha-2 地区代码（如 `'US'`, `'CN'`）。 |
+| `language` | `string` | ISO 639-1 语言代码（如 `'en'`, `'zh-CN'`）。 |
+| `safeSearch`| `string` | 安全搜索级别：`'off'`, `'moderate'`, `'strict'`。 |
+| `transform` | `function` | 运行时自定义转换函数。在引擎内置转换之后运行。 |
+| `...custom` | `any` | 任何其他键都将作为自定义变量传递给模板（例如 `${myVar}`）。 |
+
+#### 标准搜索结果 (Standard Search Result)
+
+返回数组中的每个结果都遵循以下结构：
+
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `title` | `string` | 搜索结果的标题。 |
+| `url` | `string` | 结果的绝对 URL。 |
+| `snippet` | `string` | 简短摘要或描述。 |
+| `image` | `string` | (可选) 缩略图或相关图片的 URL。 |
+| `date` | `string`\|`Date` | (可选) 发布日期。 |
+| `author` | `string` | (可选) 作者或来源名称。 |
+| `favicon` | `string` | (可选) 来源网站的 Favicon URL。 |
+| `rank` | `number` | (可选) 在结果中的排名（从 1 开始）。 |
+| `source` | `string` | (可选) 来源网站名称（如 'GitHub'）。 |
+
 要在您自己的引擎中支持这些选项，请重写 `formatOptions` 方法：
 
 ```typescript

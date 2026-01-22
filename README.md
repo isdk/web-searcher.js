@@ -244,6 +244,36 @@ const results = await google.search('open source', {
 });
 ```
 
+#### Search Options Reference
+
+| Option | Type | Description |
+| :--- | :--- | :--- |
+| `limit` | `number` | The target number of total results to retrieve. The searcher will automatically paginate to reach this number. |
+| `maxPages` | `number` | The maximum number of pages (fetch cycles) to fetch. Safety threshold to prevent infinite loops. Default: `10`. |
+| `timeRange` | `string` \| `object` | Filter by time. Presets: `'all'`, `'hour'`, `'day'`, `'week'`, `'month'`, `'year'`. <br/> Or `{ from: Date\|string, to?: Date\|string }` |
+| `category` | `string` | Search category: `'all'`, `'images'`, `'videos'`, `'news'`. |
+| `region` | `string` | ISO 3166-1 alpha-2 region code (e.g., `'US'`, `'CN'`). |
+| `language` | `string` | ISO 639-1 language code (e.g., `'en'`, `'zh-CN'`). |
+| `safeSearch`| `string` | Safe search level: `'off'`, `'moderate'`, `'strict'`. |
+| `transform` | `function` | A custom function to filter or modify results at runtime. Runs after the engine's built-in transform. |
+| `...custom` | `any` | Any other keys are passed as custom variables to the template (e.g., `${myVar}`). |
+
+#### Standard Search Result
+
+Each result in the returned array follows this structure:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `title` | `string` | The title of the search result. |
+| `url` | `string` | The absolute URL of the result. |
+| `snippet` | `string` | A brief snippet or description. |
+| `image` | `string` | (Optional) URL of a thumbnail or associated image. |
+| `date` | `string`\|`Date` | (Optional) Publication date. |
+| `author` | `string` | (Optional) Author or source name. |
+| `favicon` | `string` | (Optional) Favicon URL of the source website. |
+| `rank` | `number` | (Optional) 1-indexed position in the results. |
+| `source` | `string` | (Optional) Source website name (e.g., 'GitHub'). |
+
 To support these in your own engine, override the `formatOptions` method:
 
 ```typescript
