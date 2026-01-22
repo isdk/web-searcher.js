@@ -254,7 +254,7 @@ const results = await google.search('open source', {
 | `category` | `string` | 搜索分类：`'all'`, `'images'`, `'videos'`, `'news'`。 |
 | `region` | `string` | ISO 3166-1 alpha-2 地区代码（如 `'US'`, `'CN'`）。 |
 | `language` | `string` | ISO 639-1 语言代码（如 `'en'`, `'zh-CN'`）。 |
-| `safeSearch`| `string` | 安全搜索级别：`'off'`, `'moderate'`, `'strict'`。 |
+| `safeSearch` | `string` | 安全搜索级别：`'off'`, `'moderate'`, `'strict'`。 |
 | `transform` | `function` | 运行时自定义转换函数。在引擎内置转换之后运行。 |
 | `...custom` | `any` | 任何其他键都将作为自定义变量传递给模板（例如 `${myVar}`）。 |
 

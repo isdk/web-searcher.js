@@ -254,7 +254,7 @@ const results = await google.search('open source', {
 | `category` | `string` | Search category: `'all'`, `'images'`, `'videos'`, `'news'`. |
 | `region` | `string` | ISO 3166-1 alpha-2 region code (e.g., `'US'`, `'CN'`). |
 | `language` | `string` | ISO 639-1 language code (e.g., `'en'`, `'zh-CN'`). |
-| `safeSearch`| `string` | Safe search level: `'off'`, `'moderate'`, `'strict'`. |
+| `safeSearch` | `string` | Safe search level: `'off'`, `'moderate'`, `'strict'`. |
 | `transform` | `function` | A custom function to filter or modify results at runtime. Runs after the engine's built-in transform. |
 | `...custom` | `any` | Any other keys are passed as custom variables to the template (e.g., `${myVar}`). |
 
