@@ -168,11 +168,16 @@ protected override get pagination() {
 
 ### Step 3: Transform & Clean Data
 
-Override `transform` to clean data. Since `WebSearcher` is a `FetchSession`, you can also make extra requests (like resolving redirects) using `this`.
+Override `transform` to clean data. The `context` parameter contains the current search state and any custom parameters you passed to `search()`. Since `WebSearcher` is a `FetchSession`, you can also make extra requests (like resolving redirects) using `this`.
 
 ```typescript
-protected override async transform(outputs: Record<string, any>) {
+protected override async transform(outputs: Record<string, any>, context: SearchContext) {
   const results = outputs['results'] || [];
+
+  // You can access custom parameters from context
+  if (context.myCustomFlag) {
+    // ... logic
+  }
 
   // Clean data or filter
   return results.map(item => ({
@@ -210,8 +215,10 @@ This is extremely powerful for **filtering out ads** or irrelevant content. If t
 ```typescript
 await google.search('test', {
   limit: 20,
+  myCustomFlag: true,
   // Example: Filter out sponsored results and only keep PDFs
-  transform: (results) => {
+  transform: (results, context) => {
+    console.log('Searching for:', context.query);
     return results.filter(r => {
       const isAd = r.isSponsored || r.url.includes('googleadservices.com');
       return !isAd && r.url.endsWith('.pdf');

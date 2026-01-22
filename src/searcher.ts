@@ -257,7 +257,7 @@ export abstract class WebSearcher extends FetchSession {
       const { outputs } = await this.executeAll(actions);
 
       // 7. Extract and transform results
-      const context: SearchContext = { query, page, limit: options.limit };
+      const context: SearchContext = { ...options, query, page };
       let results: StandardSearchResult[] = [];
 
       // Call instance transform method

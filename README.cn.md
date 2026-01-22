@@ -168,11 +168,16 @@ protected override get pagination() {
 
 ### 步骤 3: 转换与清洗数据 (Transform)
 
-重写 `transform` 以清洗数据。由于 `WebSearcher` 本身就是一个 `FetchSession`，您还可以使用 `this` 发起额外的请求（如解析重定向）。
+重写 `transform` 以清洗数据。`context` 参数包含了当前的搜索状态以及您传递给 `search()` 的任何自定义参数。由于 `WebSearcher` 本身就是一个 `FetchSession`，您还可以使用 `this` 发起额外的请求（如解析重定向）。
 
 ```typescript
-protected override async transform(outputs: Record<string, any>) {
+protected override async transform(outputs: Record<string, any>, context: SearchContext) {
   const results = outputs['results'] || [];
+
+  // 您可以从 context 中访问自定义参数
+  if (context.myCustomFlag) {
+    // ... 逻辑
+  }
 
   // 清洗数据或过滤
   return results.map(item => ({
@@ -210,8 +215,10 @@ protected override async transform(outputs: Record<string, any>) {
 ```typescript
 await google.search('test', {
   limit: 20,
+  myCustomFlag: true,
   // 示例：过滤掉赞助商结果（广告）并只保留 PDF
-  transform: (results) => {
+  transform: (results, context) => {
+    console.log('正在搜索:', context.query);
     return results.filter(r => {
       const isAd = r.isSponsored || r.url.includes('googleadservices.com');
       return !isAd && r.url.endsWith('.pdf');

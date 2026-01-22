@@ -97,6 +97,9 @@ export interface SearchContext {
   
   /** The requested limit of results. */
   limit?: number;
+
+  /** Allows for custom variables passed via search options. */
+  [key: string]: any;
 }
 
 export type SearchTimeRangePreset = 'all' | 'hour' | 'day' | 'week' | 'month' | 'year';
