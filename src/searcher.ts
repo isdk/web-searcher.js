@@ -152,17 +152,34 @@ export abstract class WebSearcher extends FetchSession {
     return undefined;
   }
 
+  /**
+   * Dynamically retrieves the fetch template based on current variables and search options.
+   *
+   * Subclasses can override this method to return different extraction rules (actions)
+   * or URL patterns based on the search category, region, or other parameters.
+   *
+   * @param variables - The calculated variables (from formatOptions, pagination, etc.).
+   * @param options - The original search options provided by the user.
+   * @returns The fetcher configuration to be used for the current request.
+   */
+  protected getTemplate(variables: Record<string, any>, options: SearchOptions): FetcherOptions {
+    return this.template;
+  }
+
   protected createContext(options: FetcherOptions = this.options) {
-    const template = this.template;
-    // 1. Merge config: Template > User Options
+    // 1. Get the base template configuration
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { actions: _unused, ...templateConfig } = this.template;
+
+    // 2. Merge config: Template > User Options
     // We use defaultsDeep to ensure template properties take precedence,
     // but missing properties are filled from user options.
-    const effectiveOptions = defaultsDeep({}, template, options);
+    const effectiveOptions = defaultsDeep({}, templateConfig, options);
 
-    // 2. Special handling for 'engine'
+    // 3. Special handling for 'engine'
     // If template specifies 'auto' (or is missing) but user provided an explicit engine,
     // we want to respect the user's choice.
-    if ((!template.engine || template.engine === 'auto') && options.engine) {
+    if ((!templateConfig.engine || templateConfig.engine === 'auto') && options.engine) {
       effectiveOptions.engine = options.engine;
     }
 
@@ -210,18 +227,21 @@ export abstract class WebSearcher extends FetchSession {
         limit
       };
 
-      // 3. Inject variables into the template
-      // This creates a new options object with resolved strings (e.g., url with query)
-      const templateWithOptions = injectVariables(this.template, variables);
+      // 3. Resolve the template (it can be dynamic based on variables/options)
+      const dynamicTemplate = this.getTemplate(variables, options);
 
-      // 4. Merge runtime options
+      // 4. Inject variables into the template
+      // This creates a new options object with resolved strings (e.g., url with query)
+      const templateWithOptions = injectVariables(dynamicTemplate, variables);
+
+      // 5. Merge runtime options
       // Template actions take absolute precedence. User cannot override actions via options.
       // We exclude 'actions' from the user options before merging to prevent array mixing by defaultsDeep.
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { actions: _ignoredUserActions, ...userOptionsNoActions } = options;
       const currentOptions = defaultsDeep({}, templateWithOptions, userOptionsNoActions) as FetcherOptions;
 
-      // 5. Prepare Actions
+      // 6. Prepare Actions
       const actions: FetchActionOptions[] = [];
       const templateActions = currentOptions.actions || [];
 
@@ -246,7 +266,7 @@ export abstract class WebSearcher extends FetchSession {
       // Append template actions
       actions.push(...templateActions);
 
-      // 6. Execute the fetch actions
+      // 7. Execute the fetch actions
       // Note: We use executeAll from FetchSession (this)
       // If the template specifies 'engine', we should probably respect it for the session context.
       if (currentOptions.engine && this.context.engine !== currentOptions.engine && currentOptions.engine !== 'auto') {
@@ -256,7 +276,7 @@ export abstract class WebSearcher extends FetchSession {
 
       const { outputs } = await this.executeAll(actions);
 
-      // 7. Extract and transform results
+      // 8. Extract and transform results
       const context: SearchContext = { ...options, query, page };
       let results: StandardSearchResult[] = [];
 

@@ -43,12 +43,45 @@ console.log(results);
 
 Since `WebSearcher` extends `FetchSession`, you can instantiate it to keep cookies and storage alive across multiple requests. This is useful for authenticated searches or avoiding bot detection by behaving like a human.
 
+### 🧬 Dynamic Templates
+
+While a static `template` works for simple search engines, many sites (like Google) change their HTML structure drastically based on the search category (e.g., 'Web' vs 'Images' vs 'News').
+
+To handle this, you can override the `getTemplate(variables, options)` method.
+
+- **`variables`**: The calculated variables (from `formatOptions`, pagination, etc.).
+- **`options`**: The original `SearchOptions` provided by the user.
+
+```typescript
+export class MyAdvancedSearcher extends WebSearcher {
+  get template(): FetcherOptions {
+    // Default template (usually for web search)
+    return {
+      url: '...',
+      actions: [ { id: 'extract', params: { selector: '.web-result' } } ]
+    };
+  }
+
+  protected override getTemplate(variables: Record<string, any>, options: SearchOptions): FetcherOptions {
+    if (options.category === 'images') {
+      return {
+        url: 'https://site.com/images?q=${query}',
+        actions: [ { id: 'extract', params: { selector: '.img-item' } } ]
+      };
+    }
+    // Fallback to the default template getter
+    return super.getTemplate(variables, options);
+  }
+}
+```
+
 ### 🛡️ Core Principle: Template is Law
 
-The `template` defined in the `WebSearcher` subclass acts as the authoritative "blueprint".
+The `template` (or the dynamic template returned by `getTemplate`) acts as the authoritative "blueprint".
 
 - **Template Priority**: If the template defines a property (e.g., `engine: 'browser'`, `headers`), that value is **locked** and cannot be overridden by user options. This ensures engine stability.
 - **Immutable Actions**: The `actions` array in the template is strictly protected. Users cannot append, replace, or modify the execution steps via `options`. This prevents external logic from breaking the scraper's flow.
+- **Session Context**: To maintain a clean session, **actions are filtered out** of the session's persistent context. They are only used during the execution of a `search()` call. This ensures that session-level settings (like cookies or engine type) are preserved without being cluttered by search-specific extraction rules.
 - **User Flexibility**: Properties **not** explicitly defined in the template (such as `proxy`, `timeoutMs`, or custom variables) can be freely set by the user in the constructor or `search()` method.
 
 ```typescript

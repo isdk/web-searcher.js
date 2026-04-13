@@ -43,12 +43,45 @@ console.log(results);
 
 由于 `WebSearcher` 继承自 `FetchSession`，您可以实例化它以在多个请求之间保持 Cookie 和存储。这对于需要登录的搜索或通过模拟人类行为来避免反爬虫非常有用。
 
+### 🧬 动态模板 (Dynamic Templates)
+
+虽然静态 `template` 适用于简单的搜索引擎，但许多网站（如 Google）会根据搜索类别（如“网页” vs “图片” vs “新闻”）彻底改变其 HTML 结构。
+
+为了处理这种情况，您可以重写 `getTemplate(variables, options)` 方法。
+
+- **`variables`**: 计算后的变量（来自 `formatOptions`、分页等）。
+- **`options`**: 用户提供的原始 `SearchOptions`。
+
+```typescript
+export class MyAdvancedSearcher extends WebSearcher {
+  get template(): FetcherOptions {
+    // 默认模板（通常用于网页搜索）
+    return {
+      url: '...',
+      actions: [ { id: 'extract', params: { selector: '.web-result' } } ]
+    };
+  }
+
+  protected override getTemplate(variables: Record<string, any>, options: SearchOptions): FetcherOptions {
+    if (options.category === 'images') {
+      return {
+        url: 'https://site.com/images?q=${query}',
+        actions: [ { id: 'extract', params: { selector: '.img-item' } } ]
+      };
+    }
+    // 回退到默认的 template 获取器
+    return super.getTemplate(variables, options);
+  }
+}
+```
+
 ### 🛡️ 核心准则：模板即法律 (Template is Law)
 
-在 `WebSearcher` 子类中定义的 `template` 是权威的“蓝图”。
+`template`（或由 `getTemplate` 返回的动态模板）是权威的“蓝图”。
 
 - **模板优先级**：如果模板定义了某个属性（如 `engine: 'browser'`、特定的 `headers` 等），该值将被**锁定**，用户选项无法覆盖。这确保了抓取逻辑的稳定性。
 - **Actions 不可变性**：模板中的 `actions` 数组受到严格保护。用户无法通过 `options` 追加、替换或修改执行步骤。这防止了外部逻辑破坏爬虫的执行流程。
+- **会话上下文 (Session Context)**：为了保持干净的会话，**actions 会从会话的持久化上下文中过滤掉**。它们仅在 `search()` 调用执行期间使用。这确保了会话级设置（如 Cookie 或引擎类型）得以保留，而不会被特定于搜索的提取规则所污染。
 - **用户灵活性**：对于模板中**未**显式锁定的属性（如 `proxy`、`timeoutMs` 或自定义变量），用户可以在构造函数或 `search()` 方法中自由设置。
 
 ```typescript

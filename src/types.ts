@@ -5,13 +5,13 @@
 export interface StandardSearchResult {
   /** The title of the search result. */
   title: string;
-  
+
   /** The URL of the search result. */
   url: string;
-  
+
   /** A brief snippet or description of the result. */
   snippet?: string;
-  
+
   /** An optional image URL associated with the result. */
   image?: string;
 
@@ -29,9 +29,9 @@ export interface StandardSearchResult {
 
   /** The source website name (e.g., 'GitHub', 'StackOverflow'). */
   source?: string;
-  
+
   /** Allows for engine-specific extra fields (e.g., siteIcon, category). */
-  [key: string]: any; 
+  [key: string]: any;
 }
 
 /**
@@ -39,27 +39,27 @@ export interface StandardSearchResult {
  * Defines how the searcher should navigate to the next page of results.
  */
 export interface PaginationConfig {
-  /** 
+  /**
    * The type of pagination mechanism:
    * - 'url-param': Pagination is handled by modifying URL parameters (e.g., `?page=2` or `?start=10`).
    * - 'click-next': Pagination is handled by clicking a "Next" button on the page (only works in 'browser' mode).
    */
   type: 'url-param' | 'click-next';
-  
-  /** 
+
+  /**
    * The name of the URL parameter used for pagination.
    * Required if type is 'url-param'.
    * @example 'start' for Google, 'page' or 'p' for others.
    */
-  paramName?: string; 
-  
-  /** 
+  paramName?: string;
+
+  /**
    * The starting value for the pagination parameter.
    * @default 0
    */
   startValue?: number;
-  
-  /** 
+
+  /**
    * The increment step for each page.
    * - If the parameter represents an item offset (like Google's 'start'), this might be 10.
    * - If the parameter represents a page number, this is usually 1.
@@ -67,19 +67,19 @@ export interface PaginationConfig {
    */
   increment?: number;
 
-  /** 
+  /**
    * The CSS selector for the "Next" page button.
    * Required if type is 'click-next'.
    */
   nextButtonSelector?: string;
 
   /**
-   * The safety threshold for the maximum number of pages to fetch automatically 
+   * The safety threshold for the maximum number of pages to fetch automatically
    * in a single search call.
-   * 
-   * Even if the requested `limit` of results hasn't been reached, the searcher 
+   *
+   * Even if the requested `limit` of results hasn't been reached, the searcher
    * will stop after this many pages to prevent infinite loops or excessive API usage.
-   * 
+   *
    * @default 10
    */
   maxPages?: number;
@@ -91,10 +91,10 @@ export interface PaginationConfig {
 export interface SearchContext {
   /** The original search query. */
   query: string;
-  
+
   /** The current page index (0-based). */
   page: number;
-  
+
   /** The requested limit of results. */
   limit?: number;
 
@@ -113,7 +113,7 @@ export interface CustomTimeRange {
 
 export type SearchTimeRange = SearchTimeRangePreset | CustomTimeRange;
 
-export type SearchCategory = 'all' | 'images' | 'videos' | 'news';
+export type SearchCategory = 'all' | 'images' | 'videos' | 'news' | string;
 
 export type SafeSearchLevel = 'off' | 'moderate' | 'strict';
 
@@ -126,14 +126,14 @@ export interface SearchOptions {
 
   /**
    * The maximum number of pages (fetch cycles) allowed to reach the requested `limit`.
-   * 
-   * This is a safety guard. If the `limit` is high but each page has few results, 
+   *
+   * This is a safety guard. If the `limit` is high but each page has few results,
    * the searcher will stop once this page count is reached.
-   * 
+   *
    * If not provided, it defaults to the value in `PaginationConfig` or 10.
    */
   maxPages?: number;
-  
+
   /**
    * Date range for the search results.
    * Default: 'all'
@@ -162,7 +162,7 @@ export interface SearchOptions {
    */
   safeSearch?: SafeSearchLevel;
 
-  /** 
+  /**
    * A custom transform function to filter or modify results at runtime.
    * This runs AFTER the engine-level transform.
    */
@@ -172,5 +172,5 @@ export interface SearchOptions {
   ) => Promise<StandardSearchResult[]> | StandardSearchResult[];
 
   /** Any other custom variables to be injected into the template. */
-  [key: string]: any; 
+  [key: string]: any;
 }
