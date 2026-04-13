@@ -125,8 +125,10 @@ export abstract class WebSearcher extends FetchSession {
   /**
    * The declarative template for the fetch options.
    *
-   * Subclasses **must** implement this getter to provide the engine configuration,
+   * Subclasses can implement this getter to provide the engine configuration,
    * including the base URL, search parameters pattern, and extraction rules.
+   *
+   * This getter is **optional** if you override {@link getTemplate}.
    *
    * Supports variable injection using syntax like `${query}`, `${offset}`, etc.
    *
@@ -140,7 +142,9 @@ export abstract class WebSearcher extends FetchSession {
    * }
    * ```
    */
-  abstract get template(): FetcherOptions;
+  get template(): FetcherOptions {
+    return {};
+  }
 
   /**
    * Optional pagination configuration.

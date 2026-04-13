@@ -137,7 +137,6 @@ describe('WebSearcher Dynamic Template', () => {
 
   it('should handle deep nested variable injection in actions', async () => {
     class DeepMockSearcher extends WebSearcher {
-      get template(): FetcherOptions { return {}; }
       protected override getTemplate(): FetcherOptions {
         return {
           actions: [
@@ -191,7 +190,6 @@ describe('WebSearcher Dynamic Template', () => {
 
   it('should respect explicit goto in dynamic template and avoid duplicates', async () => {
     class ExplicitGotoSearcher extends WebSearcher {
-      get template(): FetcherOptions { return {}; }
       protected override getTemplate(): FetcherOptions {
         return {
           url: 'http://test.com/${query}',
