@@ -2,12 +2,13 @@ import { FetchActionOptions, FetcherOptions, FetchSession } from "@isdk/web-fetc
 import { addBaseFactoryAbility, IBaseFactoryOptions } from "custom-factory";
 import { PaginationConfig, SearchContext, SearchOptions, StandardSearchResult } from "./types";
 import { injectVariables } from "./utils/inject";
-import { defaultsDeep } from "lodash-es";
+import { cloneDeep, defaultsDeep } from "lodash-es";
 
 /**
  * Constructor definition for Searcher subclasses.
  */
 export type SearcherConstructor = new (options?: FetcherOptions) => WebSearcher;
+export { FetcherOptions };
 
 /**
  * The abstract base class for all search engines.
@@ -43,6 +44,12 @@ export abstract class WebSearcher extends FetchSession {
    * Useful for registering shorthand names (e.g., 'g' for 'Google').
    */
   declare static alias?: string | string[];
+
+  /** Default base URLs for engines that support multiple instances. */
+  declare static defaultBaseUrls?: string[];
+
+  /** Globally shared index for tracking the currently active instance (node) across sessions. */
+  static currentInstanceIndex?: number;
 
   /**
    * Registers a search engine class.
@@ -93,31 +100,67 @@ export abstract class WebSearcher extends FetchSession {
   declare static setAliases: (ctor: typeof WebSearcher, ...aliases: string[]) => void;
 
   /**
-   * Static helper to execute a one-off search.
+   * Static helper to execute a one-off search or a fallback chain.
    *
-   * It creates an instance of the specified engine, executes the search, and then
-   * automatically disposes of the session.
+   * It creates an instance of the specified engine(s), executes the search, and automatically
+   * falls back to the next engine in the list if the current one fails or is exhausted.
    *
-   * @param engineName - The name of the engine to use (e.g., 'Google').
+   * @param engineNames - The name(s) of the engine(s) to use (e.g., 'Google' or ['SearXNG', 'Google']).
    * @param query - The search query string.
    * @param options - Combined search options and fetcher options.
    * @returns A promise resolving to an array of standardized search results.
    */
   static async search(
-    engineName: string,
+    engineNames: string | string[],
     query: string,
     options: SearchOptions & FetcherOptions = {}
   ): Promise<StandardSearchResult[]> {
-    const instance = (this as any).createObject(engineName, options) as WebSearcher;
-    if (!instance) {
-      throw new Error(`Search engine not found: ${engineName}`);
+    const engines = Array.isArray(engineNames) ? engineNames : [engineNames];
+    const limit = options.limit || 10;
+    const fillLimit = options.fillLimit ?? true;
+    const allResults: StandardSearchResult[] = [];
+
+    for (let i = 0; i < engines.length; i++) {
+      const engineName = engines[i];
+      if (allResults.length >= limit) break;
+
+      const remainingLimit = limit - allResults.length;
+      // Pass the remaining limit to the instance, but keep original options for subsequent engines
+      const instanceOptions = { ...options, limit: remainingLimit };
+
+      const instance = (this as any).createObject(engineName, instanceOptions) as WebSearcher;
+      if (!instance) {
+        throw new Error(`Search engine not found: ${engineName}`);
+      }
+
+      try {
+        const results = await instance.search(query, instanceOptions);
+        for (const res of results) {
+          if (res.url && !allResults.some(r => r.url === res.url)) {
+            allResults.push(res);
+          }
+        }
+
+        if (allResults.length >= limit) {
+          break; // Got enough results!
+        } else if (fillLimit === false) {
+          break; // Explicitly asked NOT to fall back to next engine if the first one succeeded.
+        }
+        // If we reach here, we didn't get enough results, and fillLimit is true.
+        // The loop will naturally continue to the next engine in the array.
+      } catch (error) {
+        // The engine completely failed (all its internal instances failed).
+        // Log the failure, but only throw if it's the last engine and we have NO results.
+        console.warn(`[WebSearcher] Engine '${engineName}' failed completely:`, error);
+        if (i === engines.length - 1 && allResults.length === 0) {
+          throw error;
+        }
+      } finally {
+        await instance.dispose();
+      }
     }
 
-    try {
-      return await instance.search(query, options);
-    } finally {
-      await instance.dispose();
-    }
+    return allResults;
   }
 
   // === Instance Members ===
@@ -167,7 +210,7 @@ export abstract class WebSearcher extends FetchSession {
    * @returns The fetcher configuration to be used for the current request.
    */
   protected getTemplate(variables: Record<string, any>, options: SearchOptions): FetcherOptions {
-    return this.template;
+    return cloneDeep(this.template);
   }
 
   protected createContext(options: FetcherOptions = this.options) {
@@ -193,8 +236,8 @@ export abstract class WebSearcher extends FetchSession {
   /**
    * Executes a search query.
    *
-   * This method handles the pagination loop, variable injection, fetching,
-   * and result transformation.
+   * This method handles the pagination loop, multi-instance failover, variable injection,
+   * fetching, and result transformation.
    *
    * @param query - The search query string.
    * @param options - Optional search parameters (e.g., limit, timeRange).
@@ -206,95 +249,156 @@ export abstract class WebSearcher extends FetchSession {
   ): Promise<StandardSearchResult[]> {
     const limit = options.limit || 10;
     const allResults: StandardSearchResult[] = [];
+    const seenUrls = new Set<string>();
 
-    let page = 0;
+    let page = options.startPage || 0;
     const startValue = this.pagination?.startValue ?? 0;
     const increment = this.pagination?.increment ?? 1;
     const maxPages = options.maxPages || this.pagination?.maxPages || 10;
+    const engineName = (this.constructor as any).name;
 
-    // Use the template to determine the base session options (like engine preference)
-    // We merge these into the session's context via createContext -> super().
-    // However, for the per-request options in the loop, we need to re-evaluate.
+    // Resolve baseUrls for multi-instance support
+    let baseUrls: string[] | undefined;
+    if (options.baseUrls) {
+      if (Array.isArray(options.baseUrls)) {
+        baseUrls = options.baseUrls;
+      } else if (typeof options.baseUrls === 'object') {
+        baseUrls = options.baseUrls[engineName] || options.baseUrls[(this.constructor as any).alias?.[0]];
+      }
+    }
+    if (!baseUrls || baseUrls.length === 0) {
+      baseUrls = (this.constructor as any).defaultBaseUrls;
+    }
+    const hasBaseUrls = baseUrls && baseUrls.length > 0;
+
+    let urlIndex = 0;
+    if (hasBaseUrls && typeof (this.constructor as any).currentInstanceIndex === 'number') {
+      urlIndex = (this.constructor as any).currentInstanceIndex;
+    }
+
+    let exhausted = false;
 
     while (allResults.length < limit) {
-      // 1. Calculate engine-specific variables
-      const engineVars = this.formatOptions(options);
+      let pageSuccess = false;
+      let lastError: any = null;
 
-      // 2. Calculate variables for the current page
-      const offset = startValue + (page * increment);
-      const variables = {
-        ...options,
-        ...engineVars,
-        query,
-        page: page + startValue,
-        offset,
-        limit
-      };
+      const instancesToTry = hasBaseUrls ? baseUrls!.length : 1;
+      let attempts = 0;
 
-      // 3. Resolve the template (it can be dynamic based on variables/options)
-      const dynamicTemplate = this.getTemplate(variables, options);
+      while (attempts < instancesToTry) {
+        const baseUrl = hasBaseUrls ? baseUrls![urlIndex] : undefined;
 
-      // 4. Inject variables into the template
-      // This creates a new options object with resolved strings (e.g., url with query)
-      const templateWithOptions = injectVariables(dynamicTemplate, variables);
+        // 1. Calculate engine-specific variables
+        const engineVars = this.formatOptions(options);
 
-      // 5. Merge runtime options
-      // Template actions take absolute precedence. User cannot override actions via options.
-      // We exclude 'actions' from the user options before merging to prevent array mixing by defaultsDeep.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { actions: _ignoredUserActions, ...userOptionsNoActions } = options;
-      const currentOptions = defaultsDeep({}, templateWithOptions, userOptionsNoActions) as FetcherOptions;
+        // 2. Calculate variables for the current page
+        const offset = startValue + (page * increment);
+        const variables = {
+          ...options,
+          ...engineVars,
+          query,
+          page: page + startValue,
+          offset,
+          limit,
+          baseUrl: baseUrl?.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl,
+        };
 
-      // 6. Prepare Actions
-      const actions: FetchActionOptions[] = [];
-      const templateActions = currentOptions.actions || [];
+        // 3. Resolve the template (it can be dynamic based on variables/options)
+        const dynamicTemplate = this.getTemplate(variables, options);
 
-      // Handling navigation logic
-      if (page === 0 || this.pagination?.type === 'url-param') {
-        if (currentOptions.url) {
-          // Check if the template explicitly defines a 'goto' for this exact URL.
-          // If so, we skip the automatic injection to avoid duplicates.
-          const hasExplicitGoto = templateActions.some(
-            a => (a.id ?? a.name ?? a.action) === 'goto' && a.params?.url === currentOptions.url
-          );
+        // 4. Inject variables into the template
+        const templateWithOptions = injectVariables(dynamicTemplate, variables);
 
-          if (!hasExplicitGoto) {
-            actions.push({ id: 'goto', params: { url: currentOptions.url } });
+        // 5. Merge runtime options
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { actions: _ignoredUserActions, ...userOptionsNoActions } = options;
+        const currentOptions = defaultsDeep({}, templateWithOptions, userOptionsNoActions) as FetcherOptions;
+
+        // 6. Prepare Actions
+        const actions: FetchActionOptions[] = [];
+        const templateActions = currentOptions.actions || [];
+
+        // Handling navigation logic
+        if (page === (options.startPage || 0) || this.pagination?.type === 'url-param') {
+          if (currentOptions.url) {
+            const hasExplicitGoto = templateActions.some(
+              a => (a.id ?? a.name ?? a.action) === 'goto' && a.params?.url === currentOptions.url
+            );
+
+            if (!hasExplicitGoto) {
+              actions.push({ id: 'goto', params: { url: currentOptions.url } });
+            }
           }
+        } else if (this.pagination?.type === 'click-next' && this.pagination.nextButtonSelector) {
+          actions.push({ id: 'click', params: { selector: this.pagination.nextButtonSelector } });
+          actions.push({ id: 'waitFor', params: { networkIdle: true, ms: 500 } });
         }
-      } else if (this.pagination?.type === 'click-next' && this.pagination.nextButtonSelector) {
-        actions.push({ id: 'click', params: { selector: this.pagination.nextButtonSelector } });
-        actions.push({ id: 'waitFor', params: { networkIdle: true, ms: 500 } });
+
+        // Append template actions
+        actions.push(...templateActions);
+
+        // 7. Execute the fetch actions
+        if (currentOptions.engine && this.context.engine !== currentOptions.engine && currentOptions.engine !== 'auto') {
+          // Mid-flight engine context mismatch logic
+        }
+
+        try {
+          const { outputs } = await this.executeAll(actions, options as any);
+          const context: SearchContext = { ...options, query, page, baseUrl, engine: engineName };
+
+          // 8. Extract and transform results
+          let results = await this.transform(outputs, context);
+
+          // Apply user-level transform if provided
+          if (options.transform) {
+            results = await options.transform(results, context);
+          }
+
+          // 9. VALIDATOR HOOK
+          let isValid = true;
+          if (this.validateFetchResult) {
+            isValid = await this.validateFetchResult(results, context);
+          }
+          if (isValid && options.validator) {
+            isValid = await options.validator(results, context);
+          }
+
+          if (!isValid) {
+            throw new Error(`Results validation failed for engine: ${engineName}, url: ${baseUrl}`);
+          }
+
+          if (!results || results.length === 0) {
+            // Exhausted! No more results from this engine.
+            exhausted = true;
+          } else {
+            for (const res of results) {
+              if (res.url && !seenUrls.has(res.url)) {
+                seenUrls.add(res.url);
+                allResults.push(res);
+              }
+            }
+          }
+
+          pageSuccess = true;
+          break; // Success! Break out of the attempts loop.
+
+        } catch (error) {
+          lastError = error;
+          // Failed. Try next baseUrl.
+          if (hasBaseUrls) {
+            urlIndex = (urlIndex + 1) % baseUrls!.length;
+            (this.constructor as any).currentInstanceIndex = urlIndex; // Update global state
+          }
+          attempts++;
+        }
       }
 
-      // Append template actions
-      actions.push(...templateActions);
-
-      // 7. Execute the fetch actions
-      // Note: We use executeAll from FetchSession (this)
-      // If the template specifies 'engine', we should probably respect it for the session context.
-      if (currentOptions.engine && this.context.engine !== currentOptions.engine && currentOptions.engine !== 'auto') {
-         // This is a complex case: changing engine mid-flight.
-         // For now, we assume the session was created with the right engine or 'auto'.
+      if (!pageSuccess) {
+        // All instances failed for this page!
+        throw lastError || new Error(`All instances failed for engine: ${engineName}`);
       }
 
-      const { outputs } = await this.executeAll(actions);
-
-      // 8. Extract and transform results
-      const context: SearchContext = { ...options, query, page };
-      let results: StandardSearchResult[] = [];
-
-      // Call instance transform method
-      results = await this.transform(outputs, context);
-
-      // Apply user-level transform if provided
-      if (options.transform) {
-        results = await options.transform(results, context);
-      }
-
-      if (!results || results.length === 0) break;
-
-      allResults.push(...results);
+      if (exhausted) break; // Engine returned no results, stop paginating this engine
 
       if (allResults.length >= limit || !this.pagination) break;
 
@@ -303,6 +407,23 @@ export abstract class WebSearcher extends FetchSession {
     }
 
     return allResults.slice(0, limit);
+  }
+
+  /**
+   * Hook for subclasses to validate fetched results before they are accepted.
+   * If this returns false, the instance manager will consider the fetch a failure
+   * and automatically switch to the next available baseUrl (if any).
+   *
+   * @param results - The extracted results.
+   * @param context - Context including the current baseUrl and page.
+   * @returns A promise resolving to true if valid, false otherwise.
+   */
+  protected async validateFetchResult(
+    results: StandardSearchResult[],
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    context: SearchContext
+  ): Promise<boolean> {
+    return true;
   }
 
   /**

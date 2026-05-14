@@ -39,7 +39,23 @@ const results = await WebSearcher.search('Google', 'open source', { limit: 20 })
 console.log(results);
 ```
 
-### 2. Stateful Session
+### 3. Multi-Engine Orchestration
+
+`WebSearcher.search` features a built-in **Waterfall** compensation mechanism. When you provide an array of engine names, it executes them sequentially and automatically fills the result count:
+
+- **Automatic Completion**: If the preceding engines return fewer results than the `limit`, it automatically requests subsequent engines to fill the gap.
+- **Failover & Degradation**: If an engine fails (e.g., blocked, timeout), it automatically skips it and tries the next one, ensuring results are returned whenever possible.
+- **Auto Deduplication**: It automatically de-duplicates results based on their `url` during the merging process.
+
+```typescript
+// Waterfall search: Google first, Bing as fallback, SearXNG as final backup
+const results = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open source', {
+  limit: 20,
+  fillLimit: true // Enabled by default
+});
+```
+
+### 4. Stateful Session
 
 Since `WebSearcher` extends `FetchSession`, you can instantiate it to keep cookies and storage alive across multiple requests. This is useful for authenticated searches or avoiding bot detection by behaving like a human.
 
@@ -289,6 +305,10 @@ const results = await google.search('open source', {
 | `language` | `string` | ISO 639-1 language code (e.g., `'en'`, `'zh-CN'`). |
 | `safeSearch` | `string` | Safe search level: `'off'`, `'moderate'`, `'strict'`. |
 | `transform` | `function` | A custom function to filter or modify results at runtime. Runs after the engine's built-in transform. |
+| `baseUrls` | `string[]` \| `Record<string, string[]>` | Override the base URLs for engines. Can be an array for a single engine, or a map of engine names to URL arrays. |
+| `fillLimit` | `boolean` | If `true` (default), continues to subsequent engines in the chain when the current engine returns fewer results than `limit`. |
+| `startPage` | `number` | The page index to start from. Useful when delegating pagination across different sessions. Default: `0`. |
+| `validator` | `function` | Custom callback to validate fetched results. If it returns `false`, triggers failover/retry. Signature: `(results, context) => boolean \| Promise<boolean>`. |
 | `...custom` | `any` | Any other keys are passed as custom variables to the template (e.g., `${myVar}`). |
 
 #### Standard Search Result
@@ -321,6 +341,36 @@ protected override formatOptions(options: SearchOptions): Record<string, any> {
 Then use these variables in your `template.url`:
 `url: 'https://www.google.com/search?q=${query}&tbs=${tbs}'`
 
+### 🚀 Implementing Multi-instance Support
+
+If a search engine supports multiple mirrors or distributed deployment, you can easily add failover capabilities:
+
+1. **Configure Base URLs**: Support a list of addresses in the constructor.
+2. **Validate Results**: Override `validateFetchResult(outputs, context)`. If it returns `false`, the searcher automatically tries the next address in the list.
+3. **Template Variables**: Use the `${baseUrl}` placeholder in your template URL.
+
+```typescript
+export class MyDistributedSearcher extends WebSearcher {
+  protected get template(): FetcherOptions {
+    return {
+      url: '${baseUrl}/search?q=${query}',
+      // ...
+    };
+  }
+
+  protected override validateFetchResult(outputs: Record<string, any>, context: SearchContext): boolean {
+    const results = outputs['results'] || [];
+    // If no results, trigger failover to the next node
+    return results.length > 0;
+  }
+}
+
+// Usage
+const searcher = new MyDistributedSearcher({
+  baseUrls: ['https://node1.com', 'https://node2.com']
+});
+```
+
 ### Custom Variables
 
 You can pass custom variables to `search()` and use them in your template.
@@ -332,6 +382,34 @@ await google.search('test', { category: 'news' });
 // Template
 url: 'https://site.com?q=${query}&cat=${category}'
 ```
+
+## 🛡️ Resilient Search & Latency Tools
+
+This module provides a set of general utility functions to evaluate node health and implement failover.
+
+### 1. General Latency Testing Utility
+
+We provide a general latency testing function `testUrlsByLatency` based on `web-fetcher` that can be used for real-time response testing and sorting of any URL list.
+
+```typescript
+import { testUrlsByLatency } from '@isdk/web-searcher/utils';
+
+const urls = ['https://google.com', 'https://bing.com', 'https://baidu.com'];
+const sorted = await testUrlsByLatency(urls, { timeout: 5000 });
+
+// Returns [{ url: '...', latency: 123 }, ...], sorted by latency ascending.
+```
+
+### 2. Engine-Specific Resilient Discovery
+
+For engines like **SearXNG** that support multiple instances and can be unstable, we provide specialized failover and discovery mechanisms.
+
+- **Automatic Failover**: Configure multiple `baseUrls` to automatically switch nodes on connection failure.
+- **Dynamic Discovery**: Automatically fetch and filter high-quality nodes from `searx.space` or GitHub.
+
+For more details, see: [SearXNG Resilient Search Documentation](./src/engines/searxng.md).
+
+---
 
 ## Pagination Guide
 

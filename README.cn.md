@@ -39,7 +39,23 @@ const results = await WebSearcher.search('Google', 'open source', { limit: 20 })
 console.log(results);
 ```
 
-### 2. 有状态会话 (Stateful Session)
+### 3. 多引擎编排 (Multi-Engine Orchestration)
+
+`WebSearcher.search` 具有内置的 **瀑布流（Waterfall）** 补偿机制。当您传入一个引擎数组时，它会按序执行并自动填补结果数量：
+
+- **自动补全**：如果前面的引擎返回结果不足（少于 `limit`），它会自动请求后续引擎以补齐缺口。
+- **容错降级**：如果某个引擎发生错误（如被封禁、超时），它会自动跳过并尝试下一个引擎，确保最终尽可能返回结果。
+- **自动去重**：合并结果时会自动基于 `url` 进行去重。
+
+```typescript
+// 瀑布流搜索：优先用 Google，不够就用 Bing，还不够就用 SearXNG 补齐
+const results = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open source', {
+  limit: 20,
+  fillLimit: true // 默认即为 true
+});
+```
+
+### 4. 有状态会话 (Stateful Session)
 
 由于 `WebSearcher` 继承自 `FetchSession`，您可以实例化它以在多个请求之间保持 Cookie 和存储。这对于需要登录的搜索或通过模拟人类行为来避免反爬虫非常有用。
 
@@ -289,6 +305,10 @@ const results = await google.search('open source', {
 | `language` | `string` | ISO 639-1 语言代码（如 `'en'`, `'zh-CN'`）。 |
 | `safeSearch` | `string` | 安全搜索级别：`'off'`, `'moderate'`, `'strict'`。 |
 | `transform` | `function` | 运行时自定义转换函数。在引擎内置转换之后运行。 |
+| `baseUrls` | `string[]` \| `Record<string, string[]>` | 覆盖引擎的基 URL。可以是单个引擎的 URL 数组，或引擎名称到 URL 数组的映射。 |
+| `fillLimit` | `boolean` | 设为 `true`（默认）时，当前引擎返回结果不足 `limit` 时会自动尝试后续引擎。 |
+| `startPage` | `number` | 分页起始页索引。适用于跨会话委托分页场景。默认值：`0`。 |
+| `validator` | `function` | 自定义回调函数验证抓取结果。返回 `false` 时触发故障转移/重试。签名：`(results, context) => boolean \| Promise<boolean>` |
 | `...custom` | `any` | 任何其他键都将作为自定义变量传递给模板（例如 `${myVar}`）。 |
 
 #### 标准搜索结果 (Standard Search Result)
@@ -321,6 +341,36 @@ protected override formatOptions(options: SearchOptions): Record<string, any> {
 然后在您的 `template.url` 中使用这些变量：
 `url: 'https://www.google.com/search?q=${query}&tbs=${tbs}'`
 
+### 🚀 实现多实例支持 (Implementing Multi-instance Support)
+
+如果某个搜索引擎支持多个镜像或分布式部署，您可以轻松地为其增加故障转移能力：
+
+1. **配置 Base URLs**：在构造函数中支持传入地址列表。
+2. **结果验证**：重写 `validateFetchResult(outputs, context)`。如果返回 `false`，搜索器会自动尝试列表中的下一个地址。
+3. **模板变量**：在模板 URL 中使用 `${baseUrl}` 占位符。
+
+```typescript
+export class MyDistributedSearcher extends WebSearcher {
+  protected get template(): FetcherOptions {
+    return {
+      url: '${baseUrl}/search?q=${query}',
+      // ...
+    };
+  }
+
+  protected override validateFetchResult(outputs: Record<string, any>, context: SearchContext): boolean {
+    const results = outputs['results'] || [];
+    // 如果没有结果，触发故障转移切换到下一个节点
+    return results.length > 0;
+  }
+}
+
+// 使用方式
+const searcher = new MyDistributedSearcher({
+  baseUrls: ['https://node1.com', 'https://node2.com']
+});
+```
+
 ### 自定义变量
 
 您可以向 `search()` 传递自定义变量并在模板中使用它们。
@@ -332,6 +382,34 @@ await google.search('test', { category: 'news' });
 // 模板
 url: 'https://site.com?q=${query}&cat=${category}'
 ```
+
+## 🛡️ 弹性搜索与测速工具 (Resilient Search & Latency Tools)
+
+本模块提供了一系列通用的工具函数，用于评估节点的健康状况并实现故障转移。
+
+### 1. 通用延迟测试工具
+
+我们提供了一个基于 `web-fetcher` 的通用测速函数 `testUrlsByLatency`，可用于对任何 URL 列表进行实时响应速度测试并按延迟排序。
+
+```typescript
+import { testUrlsByLatency } from '@isdk/web-searcher/utils';
+
+const urls = ['https://google.com', 'https://bing.com', 'https://baidu.com'];
+const sorted = await testUrlsByLatency(urls, { timeout: 5000 });
+
+// 返回 [{ url: '...', latency: 123 }, ...]，按 latency 升序排列
+```
+
+### 2. 特定引擎的弹性发现
+
+对于像 **SearXNG** 这样支持多实例且不稳定的引擎，我们提供了专门的故障转移和自动发现机制。
+
+- **自动故障转移**：支持配置多个 `baseUrls`，自动在连接失败时切换节点。
+- **动态发现**：支持从 `searx.space` 或 GitHub 自动抓取并筛选高质量节点。
+
+详细信息请参阅：[SearXNG 弹性搜索文档](./src/engines/searxng.cn.md)。
+
+---
 
 ## 分页指南
 

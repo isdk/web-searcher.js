@@ -100,6 +100,12 @@ export interface SearchContext {
 
   /** Allows for custom variables passed via search options. */
   [key: string]: any;
+
+  /** The baseUrl used for this specific fetch (if multi-instance is enabled) */
+  baseUrl?: string;
+
+  /** The name of the engine executing the search */
+  engine?: string;
 }
 
 export type SearchTimeRangePreset = 'all' | 'hour' | 'day' | 'week' | 'month' | 'year';
@@ -173,4 +179,34 @@ export interface SearchOptions {
 
   /** Any other custom variables to be injected into the template. */
   [key: string]: any;
+
+  /**
+   * Allows the user to dynamically specify or override the base URLs for the engines.
+   * Can be an array of URLs for a single engine, or a map of engine names to URL arrays.
+   */
+  baseUrls?: string[] | Record<string, string[]>;
+
+  /**
+   * User-defined callback to validate the fetched results for a page.
+   * If it returns false, the fetch is considered a failure, triggering the retry/failover mechanism.
+   */
+  validator?: (
+    results: StandardSearchResult[],
+    context: SearchContext
+  ) => boolean | Promise<boolean>;
+
+  /**
+   * If true (default), the searcher will attempt to fulfill the requested `limit`
+   * by falling back to subsequent engines in the chain if previous ones are exhausted.
+   * If false, it will stop after the first successful engine regardless of whether 
+   * the limit was reached.
+   */
+  fillLimit?: boolean;
+
+  /**
+   * Specifies which page index to start the search from.
+   * Useful when delegating pagination across different sessions.
+   * @default 0
+   */
+  startPage?: number;
 }

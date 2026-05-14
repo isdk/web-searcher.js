@@ -56,12 +56,12 @@ describe('Searcher', () => {
       const executeSpy = vi.spyOn(searcher, 'executeAll')
         .mockResolvedValueOnce({
           outputs: {
-            results: Array(10).fill(0).map((_, i) => ({ title: `Page 1 Result ${i}`, url: 'http://test.com' }))
+            results: Array(10).fill(0).map((_, i) => ({ title: `Page 1 Result ${i}`, url: `http://test.com${i}` }))
           }
         } as any)
         .mockResolvedValueOnce({
           outputs: {
-            results: Array(10).fill(0).map((_, i) => ({ title: `Page 2 Result ${i}`, url: 'http://test.com' }))
+            results: Array(10).fill(0).map((_, i) => ({ title: `Page 2 Result ${i}`, url: `http://test.com${i+10}` }))
           }
         } as any);
 

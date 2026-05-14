@@ -57,7 +57,7 @@ describe('Searcher Logic (Actions & Merging)', () => {
     await searcher.search('test', { limit: 1 });
 
     const calledActions = executeSpy.mock.calls[0][0];
-    
+
     // Expect: [goto, extract]
     expect(calledActions[0].id).toBe('goto');
     expect(calledActions[0].params.url).toBe('http://example.com/?q=test');
@@ -76,7 +76,7 @@ describe('Searcher Logic (Actions & Merging)', () => {
     // Count goto actions
     const gotoActions = calledActions.filter(a => a.id === 'goto');
     expect(gotoActions).toHaveLength(1); // Should only be the one from template
-    
+
     // Verify it is indeed the template one (though they look identical)
     // The key is length is 1, not 2.
     expect(calledActions[0].id).toBe('goto');
@@ -107,7 +107,7 @@ describe('Searcher Logic (Actions & Merging)', () => {
 
     // Expect: [goto(search), goto(login), extract]
     // The auto-injected goto comes first because the loop adds it before pushing template actions.
-    
+
     const gotoActions = calledActions.filter(a => a.id === 'goto');
     expect(gotoActions).toHaveLength(2);
 
@@ -136,10 +136,14 @@ describe('Searcher Logic (Actions & Merging)', () => {
         }
       }
       const searcher = new ContinuousSearcher();
+
+      let callCount = 0;
       // Always return 1 result, but limit is 10, so it would want to fetch 10 pages
-      const executeSpy = vi.spyOn(searcher, 'executeAll').mockResolvedValue({
-        outputs: { results: [{ title: 'res', url: '...' }] }
-      } as any);
+      const executeSpy = vi.spyOn(searcher, 'executeAll').mockImplementation(async () => {
+        return {
+          outputs: { results: [{ title: 'res', url: `${++callCount}...` }] }
+        } as any;
+      });
       vi.spyOn(searcher, 'dispose').mockResolvedValue(undefined);
 
       const results = await searcher.search('test', { limit: 10 });
@@ -159,8 +163,8 @@ describe('Searcher Logic (Actions & Merging)', () => {
       }
       const searcher = new ClickSearcher();
       const executeSpy = vi.spyOn(searcher, 'executeAll')
-        .mockResolvedValueOnce({ outputs: { results: [{ title: 'p1', url: '...' }] } } as any)
-        .mockResolvedValueOnce({ outputs: { results: [{ title: 'p2', url: '...' }] } } as any);
+        .mockResolvedValueOnce({ outputs: { results: [{ title: 'p1', url: '1...' }] } } as any)
+        .mockResolvedValueOnce({ outputs: { results: [{ title: 'p2', url: '2...' }] } } as any);
       vi.spyOn(searcher, 'dispose').mockResolvedValue(undefined);
 
       await searcher.search('test', { limit: 2 });
@@ -172,7 +176,7 @@ describe('Searcher Logic (Actions & Merging)', () => {
 
       // Page 1: [goto, extract]
       expect(firstPageActions[0].id).toBe('goto');
-      
+
       // Page 2: [click, waitFor, extract]
       expect(secondPageActions[0].id).toBe('click');
       expect(secondPageActions[0].params.selector).toBe('#next-btn');
@@ -188,8 +192,8 @@ describe('Searcher Logic (Actions & Merging)', () => {
       }
       const searcher = new OffsetSearcher();
       const executeSpy = vi.spyOn(searcher, 'executeAll')
-        .mockResolvedValueOnce({ outputs: { results: Array(10).fill({ title: 'p1' }) } } as any)
-        .mockResolvedValueOnce({ outputs: { results: Array(10).fill({ title: 'p2' }) } } as any);
+        .mockResolvedValueOnce({ outputs: { results: Array.from({ length: 10 }, (_, i) => ({ title: 'p1', url: `${i + 1}...` })) } } as any)
+        .mockResolvedValueOnce({ outputs: { results: Array.from({ length: 10 }, (_, i) => ({ title: 'p2', url: `${i + 1 + 10}...` })) } } as any);
       vi.spyOn(searcher, 'dispose').mockResolvedValue(undefined);
 
       // We need to inspect the URL to see if variables were injected correctly.
@@ -201,7 +205,7 @@ describe('Searcher Logic (Actions & Merging)', () => {
 
       // Note: TestSearcher template is 'http://example.com/?q=${query}'
       // To test offset, we need a template that uses it.
-      
+
       // Re-testing with a template that uses offset
       class VarSearcher extends WebSearcher {
         get template(): FetcherOptions {

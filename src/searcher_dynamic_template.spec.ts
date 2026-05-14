@@ -85,9 +85,13 @@ describe('WebSearcher Dynamic Template', () => {
     const searcher = new DynamicMockSearcher();
     const getTemplateSpy = vi.spyOn(searcher as any, 'getTemplate');
 
-    vi.spyOn(searcher, 'executeAll').mockResolvedValue({
-      outputs: { results: Array(5).fill({ title: 'Result', url: 'http://test.com' }) }
-    } as any);
+    let callCount = -1;
+    vi.spyOn(searcher, 'executeAll').mockImplementation(async () => {
+      callCount++
+      return {
+        outputs: { results: Array.from({ length: 5 }, (_, i) => ({ title: `p${i+1+5*callCount}`, url: `http://test.com/${i+1+5*callCount}...` }))}
+      } as any
+    });
 
     // Mock pagination to force 2 pages
     vi.spyOn(searcher, 'pagination', 'get').mockReturnValue({
