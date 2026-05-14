@@ -1,10 +1,10 @@
-import { fetchPartial, FetchOptions } from './fetcher.js'
+import { fetchPartial, FetchExtractorOptions } from './fetcher.js'
 import { extractMetadataFrom } from './extractor.js'
 
 /**
  * Options for the extractDate function.
  */
-export interface ExtractOptions extends FetchOptions {
+export interface ExtractOptions extends FetchExtractorOptions {
   /**
    * Maximum number of bytes to download from the URL.
    * Defaults to 32768 (32KB), which is usually enough for the HTML <head>.

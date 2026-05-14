@@ -1,7 +1,7 @@
 /**
  * Options for network requests.
  */
-export interface FetchOptions {
+export interface FetchExtractorOptions {
   /** Timeout in milliseconds. Defaults vary by function (5s to 10s). */
   timeout?: number
   /** Custom HTTP headers to include in the request. */
@@ -18,7 +18,7 @@ export interface FetchOptions {
  */
 export async function fetchHeaders(
   url: string,
-  options: FetchOptions = {}
+  options: FetchExtractorOptions = {}
 ): Promise<Headers | null> {
   const { timeout = 5000, headers } = options
   const controller = new AbortController()
@@ -55,7 +55,7 @@ export async function fetchHeaders(
 export async function fetchPartial(
   url: string,
   maxBytes: number = 32768,
-  options: FetchOptions = {}
+  options: FetchExtractorOptions = {}
 ): Promise<{ content: string; headers: Headers } | null> {
   const { timeout = 10000, headers } = options
   const controller = new AbortController()
