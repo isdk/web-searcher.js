@@ -1,0 +1,35 @@
+[**@isdk/web-searcher**](../README.md)
+
+***
+
+[@isdk/web-searcher](../globals.md) / FetchExtractorOptions
+
+# Interface: FetchExtractorOptions
+
+Defined in: [web-searcher/src/utils/extractor/fetcher.ts:4](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/extractor/fetcher.ts#L4)
+
+Options for network requests.
+
+## Extended by
+
+- [`ExtractOptions`](ExtractOptions.md)
+
+## Properties
+
+### headers?
+
+> `optional` **headers**: `Record`\<`string`, `string`\>
+
+Defined in: [web-searcher/src/utils/extractor/fetcher.ts:8](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/extractor/fetcher.ts#L8)
+
+Custom HTTP headers to include in the request.
+
+***
+
+### timeout?
+
+> `optional` **timeout**: `number`
+
+Defined in: [web-searcher/src/utils/extractor/fetcher.ts:6](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/extractor/fetcher.ts#L6)
+
+Timeout in milliseconds. Defaults vary by function (5s to 10s).

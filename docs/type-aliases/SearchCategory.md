@@ -6,6 +6,6 @@
 
 # Type Alias: SearchCategory
 
-> **SearchCategory** = `"all"` \| `"images"` \| `"videos"` \| `"news"`
+> **SearchCategory** = `"all"` \| `"images"` \| `"videos"` \| `"news"` \| `string`
 
-Defined in: [web-searcher/src/types.ts:113](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/types.ts#L113)
+Defined in: [web-searcher/src/types.ts:122](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/types.ts#L122)

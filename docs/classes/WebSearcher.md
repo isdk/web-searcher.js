@@ -6,7 +6,7 @@
 
 # Abstract Class: WebSearcher
 
-Defined in: [web-searcher/src/searcher.ts:31](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L31)
+Defined in: [web-searcher/src/searcher.ts:32](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L32)
 
 The abstract base class for all search engines.
 
@@ -41,7 +41,7 @@ WebSearcher.register(MySearcher);
 
 > **new WebSearcher**(`options?`): `WebSearcher`
 
-Defined in: web-fetcher/dist/index.d.ts:2287
+Defined in: web-fetcher/dist/index.d.ts:1171
 
 Creates a new FetchSession.
 
@@ -49,7 +49,7 @@ Creates a new FetchSession.
 
 ##### options?
 
-`FetcherOptions`
+[`FetcherOptions`](../interfaces/FetcherOptions.md)
 
 Configuration options for the fetcher.
 
@@ -67,7 +67,7 @@ Configuration options for the fetcher.
 
 > `protected` **closed**: `boolean`
 
-Defined in: web-fetcher/dist/index.d.ts:2281
+Defined in: web-fetcher/dist/index.d.ts:1165
 
 #### Inherited from
 
@@ -79,7 +79,7 @@ Defined in: web-fetcher/dist/index.d.ts:2281
 
 > `readonly` **context**: `FetchContext`
 
-Defined in: web-fetcher/dist/index.d.ts:2280
+Defined in: web-fetcher/dist/index.d.ts:1164
 
 The execution context for this session, containing configurations, event bus, and shared state.
 
@@ -93,7 +93,7 @@ The execution context for this session, containing configurations, event bus, an
 
 > `readonly` **id**: `string`
 
-Defined in: web-fetcher/dist/index.d.ts:2276
+Defined in: web-fetcher/dist/index.d.ts:1160
 
 Unique identifier for the session.
 
@@ -105,9 +105,9 @@ Unique identifier for the session.
 
 ### options
 
-> `protected` **options**: `FetcherOptions`
+> `protected` **options**: [`FetcherOptions`](../interfaces/FetcherOptions.md)
 
-Defined in: web-fetcher/dist/index.d.ts:2272
+Defined in: web-fetcher/dist/index.d.ts:1156
 
 #### Inherited from
 
@@ -119,7 +119,7 @@ Defined in: web-fetcher/dist/index.d.ts:2272
 
 > `static` **\_isFactory**: `boolean` = `false`
 
-Defined in: [web-searcher/src/searcher.ts:33](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L33)
+Defined in: [web-searcher/src/searcher.ts:34](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L34)
 
 ***
 
@@ -127,7 +127,7 @@ Defined in: [web-searcher/src/searcher.ts:33](https://github.com/isdk/web-search
 
 > `static` `optional` **alias**: `string` \| `string`[]
 
-Defined in: [web-searcher/src/searcher.ts:45](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L45)
+Defined in: [web-searcher/src/searcher.ts:46](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L46)
 
 Engine alias(es). Can be a single string or an array of strings.
 Useful for registering shorthand names (e.g., 'g' for 'Google').
@@ -138,7 +138,7 @@ Useful for registering shorthand names (e.g., 'g' for 'Google').
 
 > `static` **createObject**: (`name`, ...`args`) => `WebSearcher`
 
-Defined in: [web-searcher/src/searcher.ts:78](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L78)
+Defined in: [web-searcher/src/searcher.ts:85](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L85)
 
 Creates an instance of the registered search engine.
 
@@ -164,11 +164,31 @@ An instance of the search engine.
 
 ***
 
+### currentInstanceIndex?
+
+> `static` `optional` **currentInstanceIndex**: `number`
+
+Defined in: [web-searcher/src/searcher.ts:52](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L52)
+
+Globally shared index for tracking the currently active instance (node) across sessions.
+
+***
+
+### defaultBaseUrls?
+
+> `static` `optional` **defaultBaseUrls**: `string`[]
+
+Defined in: [web-searcher/src/searcher.ts:49](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L49)
+
+Default base URLs for engines that support multiple instances.
+
+***
+
 ### forEach()
 
 > `static` **forEach**: (`cb`) => `void`
 
-Defined in: [web-searcher/src/searcher.ts:85](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L85)
+Defined in: [web-searcher/src/searcher.ts:92](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L92)
 
 Iterates over all registered engines.
 
@@ -190,7 +210,7 @@ Callback function to invoke for each registered engine.
 
 > `static` **get**: (`name`) => *typeof* `WebSearcher`
 
-Defined in: [web-searcher/src/searcher.ts:69](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L69)
+Defined in: [web-searcher/src/searcher.ts:76](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L76)
 
 Retrieves a registered search engine class by name.
 
@@ -214,7 +234,7 @@ The search engine class constructor.
 
 > `static` `optional` **name**: `string`
 
-Defined in: [web-searcher/src/searcher.ts:40](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L40)
+Defined in: [web-searcher/src/searcher.ts:41](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L41)
 
 Custom engine name. If not provided, it is derived from the class name.
 For example, `GoogleSearcher` becomes `Google`.
@@ -225,7 +245,7 @@ For example, `GoogleSearcher` becomes `Google`.
 
 > `static` **register**: (`ctor`, `options?`) => `boolean`
 
-Defined in: [web-searcher/src/searcher.ts:54](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L54)
+Defined in: [web-searcher/src/searcher.ts:61](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L61)
 
 Registers a search engine class.
 
@@ -255,7 +275,7 @@ Registration options. If a string is provided, it is used as the registered name
 
 > `static` **setAliases**: (`ctor`, ...`aliases`) => `void`
 
-Defined in: [web-searcher/src/searcher.ts:93](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L93)
+Defined in: [web-searcher/src/searcher.ts:100](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L100)
 
 Sets aliases for a registered engine.
 
@@ -283,7 +303,7 @@ Aliases to add.
 
 > `static` **unregister**: (`name?`) => `void`
 
-Defined in: [web-searcher/src/searcher.ts:61](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L61)
+Defined in: [web-searcher/src/searcher.ts:68](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L68)
 
 Unregisters a search engine.
 
@@ -307,7 +327,7 @@ The name or class to unregister.
 
 > **get** **pagination**(): [`PaginationConfig`](../interfaces/PaginationConfig.md) \| `undefined`
 
-Defined in: [web-searcher/src/searcher.ts:151](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L151)
+Defined in: [web-searcher/src/searcher.ts:198](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L198)
 
 Optional pagination configuration.
 Defines how the searcher navigates to subsequent pages.
@@ -324,14 +344,16 @@ If undefined, the searcher will only fetch the first page.
 
 #### Get Signature
 
-> **get** `abstract` **template**(): `FetcherOptions`
+> **get** **template**(): [`FetcherOptions`](../interfaces/FetcherOptions.md)
 
-Defined in: [web-searcher/src/searcher.ts:143](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L143)
+Defined in: [web-searcher/src/searcher.ts:188](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L188)
 
 The declarative template for the fetch options.
 
-Subclasses **must** implement this getter to provide the engine configuration,
+Subclasses can implement this getter to provide the engine configuration,
 including the base URL, search parameters pattern, and extraction rules.
+
+This getter is **optional** if you override [getTemplate](#gettemplate).
 
 Supports variable injection using syntax like `${query}`, `${offset}`, etc.
 
@@ -348,21 +370,47 @@ get template() {
 
 ##### Returns
 
-`FetcherOptions`
+[`FetcherOptions`](../interfaces/FetcherOptions.md)
 
 ## Methods
+
+### \_logDebug()
+
+> `protected` **\_logDebug**(`category`, ...`args`): `void`
+
+Defined in: web-fetcher/dist/index.d.ts:1172
+
+#### Parameters
+
+##### category
+
+`string`
+
+##### args
+
+...`any`[]
+
+#### Returns
+
+`void`
+
+#### Inherited from
+
+`FetchSession._logDebug`
+
+***
 
 ### createContext()
 
 > `protected` **createContext**(`options`): `FetchContext`
 
-Defined in: [web-searcher/src/searcher.ts:155](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L155)
+Defined in: [web-searcher/src/searcher.ts:216](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L216)
 
 #### Parameters
 
 ##### options
 
-`FetcherOptions` = `...`
+[`FetcherOptions`](../interfaces/FetcherOptions.md) = `...`
 
 #### Returns
 
@@ -378,7 +426,7 @@ Defined in: [web-searcher/src/searcher.ts:155](https://github.com/isdk/web-searc
 
 > **dispose**(): `Promise`\<`void`\>
 
-Defined in: web-fetcher/dist/index.d.ts:2346
+Defined in: web-fetcher/dist/index.d.ts:1231
 
 Disposes of the session and its associated engine.
 
@@ -401,7 +449,7 @@ This method should be called when the session is no longer needed to free up res
 
 > **execute**\<`R`\>(`actionOptions`, `context?`): `Promise`\<`FetchActionResult`\<`R`\>\>
 
-Defined in: web-fetcher/dist/index.d.ts:2301
+Defined in: web-fetcher/dist/index.d.ts:1186
 
 Executes a single action within the session.
 
@@ -449,7 +497,7 @@ await session.execute({ name: 'goto', params: { url: 'https://example.com' } });
 
 > **executeAll**(`actions`, `options?`): `Promise`\<\{ `outputs`: `Record`\<`string`, `any`\>; `result`: `FetchResponse` \| `undefined`; \}\>
 
-Defined in: web-fetcher/dist/index.d.ts:2318
+Defined in: web-fetcher/dist/index.d.ts:1203
 
 Executes a sequence of actions.
 
@@ -457,13 +505,13 @@ Executes a sequence of actions.
 
 ##### actions
 
-`_RequireAtLeastOne`\<`FetchActionProperties`, `"id"` \| `"name"` \| `"action"`\>[]
+`_RequireAtLeastOne`\<`FetchActionProperties`, `"name"` \| `"id"` \| `"action"`\>[]
 
 An array of action options to be executed in order.
 
 ##### options?
 
-`Partial`\<`FetcherOptions`\> & `object`
+`Partial`\<[`FetcherOptions`](../interfaces/FetcherOptions.md)\> & `object`
 
 Optional temporary configuration overrides (e.g., timeoutMs, headers) for this batch of actions.
                  These overrides do not affect the main session context.
@@ -493,7 +541,7 @@ const { result, outputs } = await session.executeAll([
 
 > `protected` **formatOptions**(`options`): `Record`\<`string`, `any`\>
 
-Defined in: [web-searcher/src/searcher.ts:312](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L312)
+Defined in: [web-searcher/src/searcher.ts:457](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L457)
 
 Transforms standard options into engine-specific template variables.
 
@@ -521,7 +569,7 @@ A dictionary of variables to be injected into the template.
 
 > **getOutputs**(): `Record`\<`string`, `any`\>
 
-Defined in: web-fetcher/dist/index.d.ts:2329
+Defined in: web-fetcher/dist/index.d.ts:1214
 
 Retrieves all outputs accumulated during the session.
 
@@ -541,7 +589,7 @@ A record of stored output data.
 
 > **getState**(): `Promise`\<\{ `cookies`: `Cookie`[]; `sessionState?`: `any`; \} \| `undefined`\>
 
-Defined in: web-fetcher/dist/index.d.ts:2335
+Defined in: web-fetcher/dist/index.d.ts:1220
 
 Gets the current state of the session, including cookies and engine-specific state.
 
@@ -557,16 +605,49 @@ A promise resolving to the session state, or undefined if no engine is initializ
 
 ***
 
+### getTemplate()
+
+> `protected` **getTemplate**(`variables`, `options`): [`FetcherOptions`](../interfaces/FetcherOptions.md)
+
+Defined in: [web-searcher/src/searcher.ts:212](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L212)
+
+Dynamically retrieves the fetch template based on current variables and search options.
+
+Subclasses can override this method to return different extraction rules (actions)
+or URL patterns based on the search category, region, or other parameters.
+
+#### Parameters
+
+##### variables
+
+`Record`\<`string`, `any`\>
+
+The calculated variables (from formatOptions, pagination, etc.).
+
+##### options
+
+[`SearchOptions`](../interfaces/SearchOptions.md)
+
+The original search options provided by the user.
+
+#### Returns
+
+[`FetcherOptions`](../interfaces/FetcherOptions.md)
+
+The fetcher configuration to be used for the current request.
+
+***
+
 ### search()
 
 > **search**(`query`, `options`): `Promise`\<[`StandardSearchResult`](../interfaces/StandardSearchResult.md)[]\>
 
-Defined in: [web-searcher/src/searcher.ts:182](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L182)
+Defined in: [web-searcher/src/searcher.ts:246](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L246)
 
 Executes a search query.
 
-This method handles the pagination loop, variable injection, fetching,
-and result transformation.
+This method handles the pagination loop, multi-instance failover, variable injection,
+fetching, and result transformation.
 
 #### Parameters
 
@@ -594,7 +675,7 @@ A promise resolving to an array of standardized search results.
 
 > `protected` **transform**(`outputs`, `context`): `Promise`\<[`StandardSearchResult`](../interfaces/StandardSearchResult.md)[]\>
 
-Defined in: [web-searcher/src/searcher.ts:294](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L294)
+Defined in: [web-searcher/src/searcher.ts:439](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L439)
 
 Transform and clean the raw extracted results.
 
@@ -623,24 +704,56 @@ A promise resolving to an array of standardized search results.
 
 ***
 
-### search()
+### validateFetchResult()
 
-> `static` **search**(`engineName`, `query`, `options`): `Promise`\<[`StandardSearchResult`](../interfaces/StandardSearchResult.md)[]\>
+> `protected` **validateFetchResult**(`results`, `context`): `Promise`\<`boolean`\>
 
-Defined in: [web-searcher/src/searcher.ts:106](https://github.com/isdk/web-searcher.js/blob/7bcd8cca4a3a7fc201a5cf3e3b4283f267eadcea/src/searcher.ts#L106)
+Defined in: [web-searcher/src/searcher.ts:421](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L421)
 
-Static helper to execute a one-off search.
-
-It creates an instance of the specified engine, executes the search, and then
-automatically disposes of the session.
+Hook for subclasses to validate fetched results before they are accepted.
+If this returns false, the instance manager will consider the fetch a failure
+and automatically switch to the next available baseUrl (if any).
 
 #### Parameters
 
-##### engineName
+##### results
 
-`string`
+[`StandardSearchResult`](../interfaces/StandardSearchResult.md)[]
 
-The name of the engine to use (e.g., 'Google').
+The extracted results.
+
+##### context
+
+[`SearchContext`](../interfaces/SearchContext.md)
+
+Context including the current baseUrl and page.
+
+#### Returns
+
+`Promise`\<`boolean`\>
+
+A promise resolving to true if valid, false otherwise.
+
+***
+
+### search()
+
+> `static` **search**(`engineNames`, `query`, `options`): `Promise`\<[`StandardSearchResult`](../interfaces/StandardSearchResult.md)[]\>
+
+Defined in: [web-searcher/src/searcher.ts:113](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/searcher.ts#L113)
+
+Static helper to execute a one-off search or a fallback chain.
+
+It creates an instance of the specified engine(s), executes the search, and automatically
+falls back to the next engine in the list if the current one fails or is exhausted.
+
+#### Parameters
+
+##### engineNames
+
+The name(s) of the engine(s) to use (e.g., 'Google' or ['SearXNG', 'Google']).
+
+`string` | `string`[]
 
 ##### query
 
@@ -650,7 +763,7 @@ The search query string.
 
 ##### options
 
-[`SearchOptions`](../interfaces/SearchOptions.md) & `FetcherOptions` = `{}`
+[`SearchOptions`](../interfaces/SearchOptions.md) & [`FetcherOptions`](../interfaces/FetcherOptions.md) = `{}`
 
 Combined search options and fetcher options.
 

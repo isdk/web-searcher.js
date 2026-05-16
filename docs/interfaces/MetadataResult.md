@@ -1,0 +1,27 @@
+[**@isdk/web-searcher**](../README.md)
+
+***
+
+[@isdk/web-searcher](../globals.md) / MetadataResult
+
+# Interface: MetadataResult
+
+Defined in: [web-searcher/src/utils/extractor/extractor.ts:7](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/extractor/extractor.ts#L7)
+
+Result object for generic metadata extraction.
+
+## Indexable
+
+\[`key`: `string`\]: `any`
+
+Placeholders for future metadata fields.
+
+## Properties
+
+### date?
+
+> `optional` **date**: `string` \| `null`
+
+Defined in: [web-searcher/src/utils/extractor/extractor.ts:9](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/extractor/extractor.ts#L9)
+
+The extracted and normalized date, if any.

@@ -23,8 +23,9 @@ This module encapsulates these patterns into a reusable `WebSearcher` class.
 
 > **⚠️ Note on `GoogleSearcher`**: The `GoogleSearcher` class used in these examples is a **demo implementation** included for educational purposes. It is not intended for production use.
 >
-> * It lacks advanced anti-bot handling (CAPTCHA solving, proxy rotation) required for scraping Google reliably at scale.
-> * The extracted data may be **inaccurate or misaligned** due to Google's frequent DOM changes and A/B testing.
+> * **Strict Anti-Bot Detection**: Currently, it has been found that even when attempting to simulate simple "human behavior" in `browser` mode (such as waiting for a few seconds before automatically filling in the search box and submitting), it is still detected as an automated program by Google. This indicates that simple operation simulation is not enough to pass the detection.
+> * **Scalability Limitations**: It lacks advanced countermeasures like CAPTCHA solving, fingerprint spoofing, or high-quality proxy rotation required for reliable scraping.
+> * **Fragility**: The extracted data may be **inaccurate or misaligned** due to Google's frequent DOM changes and A/B testing.
 
 Use the static `WebSearcher.search` method for quick, disposable tasks. It automatically creates a session, fetches results, and cleans up.
 
@@ -42,16 +43,65 @@ const results = await WebSearcher.search('Google', 'open source', { limit: 20 })
 console.log(results);
 ```
 
-### 2. Stateful Session
+### 3. Multi-Engine Orchestration
+
+`WebSearcher.search` features a built-in **Waterfall** compensation mechanism. When you provide an array of engine names, it executes them sequentially and automatically fills the result count:
+
+- **Automatic Completion**: If the preceding engines return fewer results than the `limit`, it automatically requests subsequent engines to fill the gap.
+- **Failover & Degradation**: If an engine fails (e.g., blocked, timeout), it automatically skips it and tries the next one, ensuring results are returned whenever possible.
+- **Auto Deduplication**: It automatically de-duplicates results based on their `url` during the merging process.
+
+```typescript
+// Waterfall search: Google first, Bing as fallback, SearXNG as final backup
+const results = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open source', {
+  limit: 20,
+  fillLimit: true // Enabled by default
+});
+```
+
+### 4. Stateful Session
 
 Since `WebSearcher` extends `FetchSession`, you can instantiate it to keep cookies and storage alive across multiple requests. This is useful for authenticated searches or avoiding bot detection by behaving like a human.
 
+### 🧬 Dynamic Templates
+
+While a static `template` works for simple search engines, many sites (like Google) change their HTML structure drastically based on the search category (e.g., 'Web' vs 'Images' vs 'News').
+
+To handle this, you can override the `getTemplate(variables, options)` method.
+
+- **`variables`**: The calculated variables (from `formatOptions`, pagination, etc.).
+- **`options`**: The original `SearchOptions` provided by the user.
+
+```typescript
+export class MyAdvancedSearcher extends WebSearcher {
+  get template(): FetcherOptions {
+    // Default template (usually for web search)
+    return {
+      url: '...',
+      actions: [ { id: 'extract', params: { selector: '.web-result' } } ]
+    };
+  }
+
+  protected override getTemplate(variables: Record<string, any>, options: SearchOptions): FetcherOptions {
+    if (options.category === 'images') {
+      return {
+        url: 'https://site.com/images?q=${query}',
+        actions: [ { id: 'extract', params: { selector: '.img-item' } } ]
+      };
+    }
+    // Fallback to the default template getter
+    return super.getTemplate(variables, options);
+  }
+}
+```
+
 ### 🛡️ Core Principle: Template is Law
 
-The `template` defined in the `WebSearcher` subclass acts as the authoritative "blueprint".
+The `template` (or the dynamic template returned by `getTemplate`) acts as the authoritative "blueprint".
 
 - **Template Priority**: If the template defines a property (e.g., `engine: 'browser'`, `headers`), that value is **locked** and cannot be overridden by user options. This ensures engine stability.
 - **Immutable Actions**: The `actions` array in the template is strictly protected. Users cannot append, replace, or modify the execution steps via `options`. This prevents external logic from breaking the scraper's flow.
+- **Session Context**: To maintain a clean session, **actions are filtered out** of the session's persistent context. They are only used during the execution of a `search()` call. This ensures that session-level settings (like cookies or engine type) are preserved without being cluttered by search-specific extraction rules.
 - **User Flexibility**: Properties **not** explicitly defined in the template (such as `proxy`, `timeoutMs`, or custom variables) can be freely set by the user in the constructor or `search()` method.
 
 ```typescript
@@ -171,11 +221,16 @@ protected override get pagination() {
 
 ### Step 3: Transform & Clean Data
 
-Override `transform` to clean data. Since `WebSearcher` is a `FetchSession`, you can also make extra requests (like resolving redirects) using `this`.
+Override `transform` to clean data. The `context` parameter contains the current search state and any custom parameters you passed to `search()`. Since `WebSearcher` is a `FetchSession`, you can also make extra requests (like resolving redirects) using `this`.
 
 ```typescript
-protected override async transform(outputs: Record<string, any>) {
+protected override async transform(outputs: Record<string, any>, context: SearchContext) {
   const results = outputs['results'] || [];
+
+  // You can access custom parameters from context
+  if (context.myCustomFlag) {
+    // ... logic
+  }
 
   // Clean data or filter
   return results.map(item => ({
@@ -213,8 +268,10 @@ This is extremely powerful for **filtering out ads** or irrelevant content. If t
 ```typescript
 await google.search('test', {
   limit: 20,
+  myCustomFlag: true,
   // Example: Filter out sponsored results and only keep PDFs
-  transform: (results) => {
+  transform: (results, context) => {
+    console.log('Searching for:', context.query);
     return results.filter(r => {
       const isAd = r.isSponsored || r.url.includes('googleadservices.com');
       return !isAd && r.url.endsWith('.pdf');
@@ -240,6 +297,40 @@ const results = await google.search('open source', {
 });
 ```
 
+#### Search Options Reference
+
+| Option | Type | Description |
+| :--- | :--- | :--- |
+| `limit` | `number` | The target number of total results to retrieve. The searcher will automatically paginate to reach this number. |
+| `maxPages` | `number` | The maximum number of pages (fetch cycles) to fetch. Safety threshold to prevent infinite loops. Default: `10`. |
+| `timeRange` | `string` \| `object` | Filter by time. Presets: `'all'`, `'hour'`, `'day'`, `'week'`, `'month'`, `'year'`. <br/> Or `{ from: Date\|string, to?: Date\|string }` |
+| `category` | `string` | Search category: `'all'`, `'images'`, `'videos'`, `'news'`. |
+| `region` | `string` | ISO 3166-1 alpha-2 region code (e.g., `'US'`, `'CN'`). |
+| `language` | `string` | ISO 639-1 language code (e.g., `'en'`, `'zh-CN'`). |
+| `safeSearch` | `string` | Safe search level: `'off'`, `'moderate'`, `'strict'`. |
+| `transform` | `function` | A custom function to filter or modify results at runtime. Runs after the engine's built-in transform. |
+| `baseUrls` | `string[]` \| `Record<string, string[]>` | Override the base URLs for engines. Can be an array for a single engine, or a map of engine names to URL arrays. |
+| `fillLimit` | `boolean` | If `true` (default), continues to subsequent engines in the chain when the current engine returns fewer results than `limit`. |
+| `startPage` | `number` | The page index to start from. Useful when delegating pagination across different sessions. Default: `0`. |
+| `validator` | `function` | Custom callback to validate fetched results. If it returns `false`, triggers failover/retry. Signature: `(results, context) => boolean \| Promise<boolean>`. |
+| `...custom` | `any` | Any other keys are passed as custom variables to the template (e.g., `${myVar}`). |
+
+#### Standard Search Result
+
+Each result in the returned array follows this structure:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `title` | `string` | The title of the search result. |
+| `url` | `string` | The absolute URL of the result. |
+| `snippet` | `string` | A brief snippet or description. |
+| `image` | `string` | (Optional) URL of a thumbnail or associated image. |
+| `date` | `string`\|`Date` | (Optional) Publication date. |
+| `author` | `string` | (Optional) Author or source name. |
+| `favicon` | `string` | (Optional) Favicon URL of the source website. |
+| `rank` | `number` | (Optional) 1-indexed position in the results. |
+| `source` | `string` | (Optional) Source website name (e.g., 'GitHub'). |
+
 To support these in your own engine, override the `formatOptions` method:
 
 ```typescript
@@ -254,6 +345,36 @@ protected override formatOptions(options: SearchOptions): Record<string, any> {
 Then use these variables in your `template.url`:
 `url: 'https://www.google.com/search?q=${query}&tbs=${tbs}'`
 
+### 🚀 Implementing Multi-instance Support
+
+If a search engine supports multiple mirrors or distributed deployment, you can easily add failover capabilities:
+
+1. **Configure Base URLs**: Support a list of addresses in the constructor.
+2. **Validate Results**: Override `validateFetchResult(outputs, context)`. If it returns `false`, the searcher automatically tries the next address in the list.
+3. **Template Variables**: Use the `${baseUrl}` placeholder in your template URL.
+
+```typescript
+export class MyDistributedSearcher extends WebSearcher {
+  protected get template(): FetcherOptions {
+    return {
+      url: '${baseUrl}/search?q=${query}',
+      // ...
+    };
+  }
+
+  protected override validateFetchResult(outputs: Record<string, any>, context: SearchContext): boolean {
+    const results = outputs['results'] || [];
+    // If no results, trigger failover to the next node
+    return results.length > 0;
+  }
+}
+
+// Usage
+const searcher = new MyDistributedSearcher({
+  baseUrls: ['https://node1.com', 'https://node2.com']
+});
+```
+
 ### Custom Variables
 
 You can pass custom variables to `search()` and use them in your template.
@@ -265,6 +386,34 @@ await google.search('test', { category: 'news' });
 // Template
 url: 'https://site.com?q=${query}&cat=${category}'
 ```
+
+## 🛡️ Resilient Search & Latency Tools
+
+This module provides a set of general utility functions to evaluate node health and implement failover.
+
+### 1. General Latency Testing Utility
+
+We provide a general latency testing function `testUrlsByLatency` based on `web-fetcher` that can be used for real-time response testing and sorting of any URL list.
+
+```typescript
+import { testUrlsByLatency } from '@isdk/web-searcher/utils';
+
+const urls = ['https://google.com', 'https://bing.com', 'https://baidu.com'];
+const sorted = await testUrlsByLatency(urls, { timeout: 5000 });
+
+// Returns [{ url: '...', latency: 123 }, ...], sorted by latency ascending.
+```
+
+### 2. Engine-Specific Resilient Discovery
+
+For engines like **SearXNG** that support multiple instances and can be unstable, we provide specialized failover and discovery mechanisms.
+
+- **Automatic Failover**: Configure multiple `baseUrls` to automatically switch nodes on connection failure.
+- **Dynamic Discovery**: Automatically fetch and filter high-quality nodes from `searx.space` or GitHub.
+
+For more details, see: [SearXNG Resilient Search Documentation](./src/engines/searxng.md).
+
+---
 
 ## Pagination Guide
 
