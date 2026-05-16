@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.1.5](https://github.com/isdk/web-searcher.js/compare/v0.1.4...v0.1.5) (2026-05-16)
+
+
+### Features
+
+* 新增多引擎瀑布流搜索与多实例故障转移支持 ([955bc50](https://github.com/isdk/web-searcher.js/commit/955bc509edda39926bd12c6c2b8c28da7eb13ff5))
+* add a simple metadata extractor util ([edda510](https://github.com/isdk/web-searcher.js/commit/edda5109b84d896b20f269be9e52e2879917e7f5))
+* include user options in transform context and update documentation ([59f3b08](https://github.com/isdk/web-searcher.js/commit/59f3b08bdfbfc0b6c3b000d1d4c3293e76eb9a26))
+* support dynamic template selection and variable injection ([cfab88d](https://github.com/isdk/web-searcher.js/commit/cfab88d9e587b56c8a65a9dfd58fb1aa24f90a52))
+* **utils:** testUrlsByLatency a general utility to test a list of URLs for availability and latency. ([287c1ee](https://github.com/isdk/web-searcher.js/commit/287c1eef81de2e2056f42e51cbc06763611f989d))
+
+
+### Refactor
+
+* make 'template' optional in WebSearcher subclasses ([0e55546](https://github.com/isdk/web-searcher.js/commit/0e55546dcd7dcd9f7727a6d7c61f95f56c232abc))
+* rename FetchOptions to FetchExtractorOptions ([cd3b820](https://github.com/isdk/web-searcher.js/commit/cd3b820838a4ffa952c83a8763804dd12a2c5990))
+
 ## [0.1.4](https://github.com/isdk/web-searcher.js/compare/v0.1.3...v0.1.4) (2026-01-20)
 
 
