@@ -11,32 +11,39 @@ export interface VerifiedUrl {
  */
 export async function testUrlsByLatency(
   urls: string[],
-  options: { 
-    timeout?: number; 
-    limit?: number; 
+  options: {
+    timeout?: number;
+    limit?: number;
     testPath?: string;
+    proxy?: string;
   } = {}
 ): Promise<VerifiedUrl[]> {
-  const { timeout = 5000, limit = 20, testPath = '' } = options;
+  const { timeout = 5000, limit, testPath = '', proxy } = options;
 
-  const results = await Promise.all(
+  let results: VerifiedUrl[] = await Promise.all(
     urls.map(async (url) => {
       const start = Date.now();
       try {
         // Construct full URL properly without breaking the protocol slashes
         const fullUrl = testPath ? (url.endsWith('/') ? url.slice(0, -1) : url) + (testPath.startsWith('/') ? testPath : '/' + testPath) : url;
-        
+
         // Use fetchWeb to perform a simple reachability test
-        await fetchWeb(fullUrl, { timeoutMs: timeout });
+        await fetchWeb(fullUrl, { timeoutMs: timeout, proxy, throwHttpErrors: true });
         return { url, latency: Date.now() - start };
       } catch (e) {
-        return null;
+        return;
       }
     })
-  );
+  ) as any;
 
-  return results
-    .filter((r): r is VerifiedUrl => r !== null)
+  results = results
+    .filter((r): r is VerifiedUrl => r != null)
     .sort((a, b) => a.latency - b.latency)
-    .slice(0, limit);
+  ;
+
+  if (typeof limit === 'number' && limit ) {
+    results = results.slice(0, limit);
+  }
+
+  return results;
 }
