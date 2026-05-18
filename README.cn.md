@@ -59,6 +59,46 @@ const results = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open so
 
 由于 `WebSearcher` 继承自 `FetchSession`，您可以实例化它以在多个请求之间保持 Cookie 和存储。这对于需要登录的搜索或通过模拟人类行为来避免反爬虫非常有用。
 
+### 5. 默认搜索参数 (Default Search Parameters)
+
+您可以从三个层面设置默认搜索参数：**全局**、**引擎特定**和**实例级别**。这可以避免在每次调用 `search()` 时重复传递相同的选项。
+
+优先级顺序（从高到低）为：
+`search(query, options)` (调用参数) > `this.options` (实例参数) > `Engine.defaultOptions` (引擎静态参数) > `WebSearcher.defaultOptions` (全局静态参数)
+
+#### A. 全局静态默认值
+
+影响所有搜索引擎。
+
+```typescript
+import { WebSearcher } from '@isdk/web-fetcher';
+
+// 为所有搜索器设置全局限制
+WebSearcher.defaultOptions = { limit: 20, safeSearch: 'strict' };
+```
+
+#### B. 引擎特定静态默认值
+
+仅影响特定的引擎（及其子类）。
+
+```typescript
+import { GoogleSearcher } from '@isdk/web-fetcher';
+
+// 仅 Google 会使用这些默认值
+GoogleSearcher.defaultOptions = { region: 'US', language: 'en' };
+```
+
+#### C. 实例级别默认值
+
+在创建搜索器实例时设置。
+
+```typescript
+const google = new GoogleSearcher({ limit: 5, category: 'news' });
+
+// 此次搜索将自动使用 limit: 5 和 category: 'news'
+const results = await google.search('open source');
+```
+
 ### 🧬 动态模板 (Dynamic Templates)
 
 虽然静态 `template` 适用于简单的搜索引擎，但许多网站（如 Google）会根据搜索类别（如“网页” vs “图片” vs “新闻”）彻底改变其 HTML 结构。

@@ -164,6 +164,16 @@ fix(session): ensure cookies are persisted across redirects
 
 ## 🧩 Implementation Details & Gotchas
 
+### Testing Lessons
+
+#### Vitest Spies & Inheritance
+When using `vi.spyOn` on methods inherited from a base class (without overrides), Vitest attaches the spy to the shared function object on the prototype. This can cause a call to the method on one subclass instance to be recorded by spies on other subclass instances, as they all reference the same underlying function.
+
+- **Issue**: `vi.spyOn(SubClassA.prototype, 'method')` and `vi.spyOn(SubClassB.prototype, 'method')` may both track the same function if it's defined only on `BaseClass`.
+- **Solution**: To ensure physical isolation during testing:
+    - Use independent mock classes that do not share the same base method via inheritance for the test scenario.
+    - Or, explicitly override the method in the subclass before spying on it.
+
 ### Session Isolation & Storage
 
 To support concurrent executions without side effects, the library implements flexible session isolation via the `storage` configuration:

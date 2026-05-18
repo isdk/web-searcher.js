@@ -51,6 +51,43 @@ export abstract class WebSearcher extends FetchSession {
   /** Globally shared index for tracking the currently active instance (node) across sessions. */
   static currentInstanceIndex?: number;
 
+  /** @internal */
+  static _defaultOptions?: SearchOptions;
+
+  /**
+   * Gets or sets the default search parameters for this specific engine class.
+   * This does not include settings from parent classes.
+   */
+  static get defaultOptions(): SearchOptions {
+    if (!Object.prototype.hasOwnProperty.call(this, '_defaultOptions')) {
+      this._defaultOptions = {};
+    }
+    return this._defaultOptions!;
+  }
+
+  static set defaultOptions(options: SearchOptions) {
+    this._defaultOptions = options;
+  }
+
+  /**
+   * Retrieves the combined default search options by traversing the prototype chain.
+   * Priority: Current class > Parent class > WebSearcher base class.
+   */
+  static getDefaultOptions(): SearchOptions {
+    const chain: SearchOptions[] = [];
+    let curr: any = this;
+
+    while (curr && curr !== Object.prototype) {
+      if (Object.prototype.hasOwnProperty.call(curr, '_defaultOptions') && curr._defaultOptions) {
+        chain.push(curr._defaultOptions);
+      }
+      if (curr === WebSearcher) break;
+      curr = Object.getPrototypeOf(curr);
+    }
+
+    return chain.length > 0 ? defaultsDeep({}, ...chain) : {};
+  }
+
   /**
    * Registers a search engine class.
    *
@@ -116,16 +153,22 @@ export abstract class WebSearcher extends FetchSession {
     options: SearchOptions & FetcherOptions = {}
   ): Promise<StandardSearchResult[]> {
     const engines = Array.isArray(engineNames) ? engineNames : [engineNames];
-    const limit = options.limit || 10;
-    const fillLimit = options.fillLimit ?? true;
     const allResults: StandardSearchResult[] = [];
 
     for (let i = 0; i < engines.length; i++) {
       const engineName = engines[i];
+      const engineCtor = (this as any).get(engineName);
+      // Resolve all defaults for this engine (including global defaults)
+      const engineDefaults = engineCtor ? engineCtor.getDefaultOptions() : (this as any).getDefaultOptions();
+
+      // Final effective options for this engine: Call Options > Engine Defaults
+      const currentOptions = defaultsDeep({}, options, engineDefaults);
+      const limit = currentOptions.limit || 10;
+
       if (allResults.length >= limit) break;
 
       const remainingLimit = limit - allResults.length;
-      // Pass the remaining limit to the instance, but keep original options for subsequent engines
+      // Pass the remaining limit to the instance
       const instanceOptions = { ...options, limit: remainingLimit };
 
       const instance = (this as any).createObject(engineName, instanceOptions) as WebSearcher;
@@ -142,15 +185,11 @@ export abstract class WebSearcher extends FetchSession {
         }
 
         if (allResults.length >= limit) {
-          break; // Got enough results!
-        } else if (fillLimit === false) {
-          break; // Explicitly asked NOT to fall back to next engine if the first one succeeded.
+          break;
+        } else if (currentOptions.fillLimit === false) {
+          break;
         }
-        // If we reach here, we didn't get enough results, and fillLimit is true.
-        // The loop will naturally continue to the next engine in the array.
       } catch (error) {
-        // The engine completely failed (all its internal instances failed).
-        // Log the failure, but only throw if it's the last engine and we have NO results.
         console.warn(`[WebSearcher] Engine '${engineName}' failed completely:`, error);
         if (i === engines.length - 1 && allResults.length === 0) {
           throw error;
@@ -162,7 +201,6 @@ export abstract class WebSearcher extends FetchSession {
 
     return allResults;
   }
-
   // === Instance Members ===
 
   /**
@@ -247,6 +285,9 @@ export abstract class WebSearcher extends FetchSession {
     query: string,
     options: SearchOptions = {}
   ): Promise<StandardSearchResult[]> {
+    const constructor = this.constructor as typeof WebSearcher;
+    options = defaultsDeep({}, options, this.options, constructor.getDefaultOptions()) as SearchOptions;
+
     const limit = options.limit || 10;
     const allResults: StandardSearchResult[] = [];
     const seenUrls = new Set<string>();
