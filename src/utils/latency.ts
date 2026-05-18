@@ -28,7 +28,7 @@ export async function testUrlsByLatency(
         const fullUrl = testPath ? (url.endsWith('/') ? url.slice(0, -1) : url) + (testPath.startsWith('/') ? testPath : '/' + testPath) : url;
 
         // Use fetchWeb to perform a simple reachability test
-        await fetchWeb(fullUrl, { timeoutMs: timeout, proxy, throwHttpErrors: true });
+        await fetchWeb(fullUrl, { timeoutMs: timeout, proxy, throwHttpErrors: true, enableSmart: false, engine: 'http' });
         return { url, latency: Date.now() - start };
       } catch (e) {
         return;
