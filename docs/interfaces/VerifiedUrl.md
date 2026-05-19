@@ -6,7 +6,7 @@
 
 # Interface: VerifiedUrl
 
-Defined in: [web-searcher/src/utils/latency.ts:3](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/latency.ts#L3)
+Defined in: [web-searcher/src/utils/latency.ts:3](https://github.com/isdk/web-searcher.js/blob/0c4757eb75b3b7c5af0231806f11e7b3c3166736/src/utils/latency.ts#L3)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [web-searcher/src/utils/latency.ts:3](https://github.com/isdk/web-se
 
 > **latency**: `number`
 
-Defined in: [web-searcher/src/utils/latency.ts:5](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/latency.ts#L5)
+Defined in: [web-searcher/src/utils/latency.ts:5](https://github.com/isdk/web-searcher.js/blob/0c4757eb75b3b7c5af0231806f11e7b3c3166736/src/utils/latency.ts#L5)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [web-searcher/src/utils/latency.ts:5](https://github.com/isdk/web-se
 
 > **url**: `string`
 
-Defined in: [web-searcher/src/utils/latency.ts:4](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/latency.ts#L4)
+Defined in: [web-searcher/src/utils/latency.ts:4](https://github.com/isdk/web-searcher.js/blob/0c4757eb75b3b7c5af0231806f11e7b3c3166736/src/utils/latency.ts#L4)

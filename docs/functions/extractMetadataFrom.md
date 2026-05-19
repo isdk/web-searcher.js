@@ -8,7 +8,7 @@
 
 > **extractMetadataFrom**(`result`, `type`): `string` \| `null`
 
-Defined in: [web-searcher/src/utils/extractor/extractor.ts:27](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/extractor/extractor.ts#L27)
+Defined in: [web-searcher/src/utils/extractor/extractor.ts:27](https://github.com/isdk/web-searcher.js/blob/0c4757eb75b3b7c5af0231806f11e7b3c3166736/src/utils/extractor/extractor.ts#L27)
 
 Extracts specific metadata from parsed HTML and headers based on a requested type.
 Currently supports 'date' extraction with a prioritized fallback mechanism.

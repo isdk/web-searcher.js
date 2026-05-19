@@ -63,6 +63,46 @@ const results = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open so
 
 Since `WebSearcher` extends `FetchSession`, you can instantiate it to keep cookies and storage alive across multiple requests. This is useful for authenticated searches or avoiding bot detection by behaving like a human.
 
+### 5. Default Search Parameters
+
+You can set default search parameters at three levels: **Global**, **Engine-specific**, and **Instance-level**. This avoids passing repetitive options to every `search()` call.
+
+The priority order (from highest to lowest) is:
+`search(query, options)` (Call) > `this.options` (Instance) > `Engine.defaultOptions` (Static Engine) > `WebSearcher.defaultOptions` (Static Global)
+
+#### A. Global Static Defaults
+
+Affects all search engines.
+
+```typescript
+import { WebSearcher } from '@isdk/web-fetcher';
+
+// Set global limit for all searchers
+WebSearcher.defaultOptions = { limit: 20, safeSearch: 'strict' };
+```
+
+#### B. Engine-Specific Static Defaults
+
+Affects only a specific engine (and its subclasses).
+
+```typescript
+import { GoogleSearcher } from '@isdk/web-fetcher';
+
+// Only Google will use these defaults
+GoogleSearcher.defaultOptions = { region: 'US', language: 'en' };
+```
+
+#### C. Instance-Level Defaults
+
+Set when creating a searcher instance.
+
+```typescript
+const google = new GoogleSearcher({ limit: 5, category: 'news' });
+
+// This search will use limit: 5 and category: 'news' automatically
+const results = await google.search('open source');
+```
+
 ### 🧬 Dynamic Templates
 
 While a static `template` works for simple search engines, many sites (like Google) change their HTML structure drastically based on the search category (e.g., 'Web' vs 'Images' vs 'News').

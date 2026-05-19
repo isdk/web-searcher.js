@@ -8,7 +8,7 @@
 
 > **extractDate**(`url`, `options`): `Promise`\<`string` \| `null`\>
 
-Defined in: [web-searcher/src/utils/extractor/date-extractor.ts:30](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/extractor/date-extractor.ts#L30)
+Defined in: [web-searcher/src/utils/extractor/date-extractor.ts:30](https://github.com/isdk/web-searcher.js/blob/0c4757eb75b3b7c5af0231806f11e7b3c3166736/src/utils/extractor/date-extractor.ts#L30)
 
 High-level convenience function to extract the publication or modification date from a URL.
 It performs a partial fetch of the content and applies multiple extraction rules

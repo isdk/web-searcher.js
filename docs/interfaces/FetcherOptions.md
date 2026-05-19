@@ -6,7 +6,7 @@
 
 # Interface: FetcherOptions
 
-Defined in: web-fetcher/dist/index.d.ts:1108
+Defined in: web-fetcher/dist/index.d.ts:1109
 
 ## Extends
 
@@ -18,7 +18,7 @@ Defined in: web-fetcher/dist/index.d.ts:1108
 
 > `optional` **actions**: `_RequireAtLeastOne`\<`FetchActionProperties`, `"name"` \| `"id"` \| `"action"`\>[]
 
-Defined in: web-fetcher/dist/index.d.ts:1109
+Defined in: web-fetcher/dist/index.d.ts:1110
 
 ***
 
@@ -26,7 +26,7 @@ Defined in: web-fetcher/dist/index.d.ts:1109
 
 > `optional` **antibot**: `boolean`
 
-Defined in: web-fetcher/dist/index.d.ts:1048
+Defined in: web-fetcher/dist/index.d.ts:1049
 
 #### Inherited from
 
@@ -38,7 +38,7 @@ Defined in: web-fetcher/dist/index.d.ts:1048
 
 > `optional` **blockResources**: `string`[]
 
-Defined in: web-fetcher/dist/index.d.ts:1061
+Defined in: web-fetcher/dist/index.d.ts:1062
 
 #### Inherited from
 
@@ -50,7 +50,7 @@ Defined in: web-fetcher/dist/index.d.ts:1061
 
 > `optional` **browser**: `object`
 
-Defined in: web-fetcher/dist/index.d.ts:1071
+Defined in: web-fetcher/dist/index.d.ts:1072
 
 #### engine?
 
@@ -83,7 +83,7 @@ Defined in: web-fetcher/dist/index.d.ts:1071
 
 > `optional` **cache**: `FetchCacheOptions`
 
-Defined in: web-fetcher/dist/index.d.ts:1069
+Defined in: web-fetcher/dist/index.d.ts:1070
 
 Cache configuration for persistent HTTP caching.
 
@@ -97,7 +97,7 @@ Cache configuration for persistent HTTP caching.
 
 > `optional` **cookies**: `Cookie`[]
 
-Defined in: web-fetcher/dist/index.d.ts:1051
+Defined in: web-fetcher/dist/index.d.ts:1052
 
 #### Inherited from
 
@@ -109,7 +109,7 @@ Defined in: web-fetcher/dist/index.d.ts:1051
 
 > `optional` **debug**: `string` \| `boolean` \| `string`[]
 
-Defined in: web-fetcher/dist/index.d.ts:1049
+Defined in: web-fetcher/dist/index.d.ts:1050
 
 #### Inherited from
 
@@ -121,7 +121,7 @@ Defined in: web-fetcher/dist/index.d.ts:1049
 
 > `optional` **delayBetweenRequestsMs**: `number`
 
-Defined in: web-fetcher/dist/index.d.ts:1091
+Defined in: web-fetcher/dist/index.d.ts:1092
 
 #### Inherited from
 
@@ -163,7 +163,7 @@ Defined in: web-fetcher/dist/index.d.ts:1043
 
 > `optional` **headers**: `Record`\<`string`, `string`\>
 
-Defined in: web-fetcher/dist/index.d.ts:1050
+Defined in: web-fetcher/dist/index.d.ts:1051
 
 #### Inherited from
 
@@ -175,7 +175,7 @@ Defined in: web-fetcher/dist/index.d.ts:1050
 
 > `optional` **http**: `object`
 
-Defined in: web-fetcher/dist/index.d.ts:1083
+Defined in: web-fetcher/dist/index.d.ts:1084
 
 #### body?
 
@@ -195,7 +195,7 @@ Defined in: web-fetcher/dist/index.d.ts:1083
 
 > `optional` **ignoreSslErrors**: `boolean`
 
-Defined in: web-fetcher/dist/index.d.ts:1070
+Defined in: web-fetcher/dist/index.d.ts:1071
 
 #### Inherited from
 
@@ -207,7 +207,7 @@ Defined in: web-fetcher/dist/index.d.ts:1070
 
 > `optional` **maxConcurrency**: `number`
 
-Defined in: web-fetcher/dist/index.d.ts:1089
+Defined in: web-fetcher/dist/index.d.ts:1090
 
 #### Inherited from
 
@@ -219,7 +219,7 @@ Defined in: web-fetcher/dist/index.d.ts:1089
 
 > `optional` **maxRequestsPerMinute**: `number`
 
-Defined in: web-fetcher/dist/index.d.ts:1090
+Defined in: web-fetcher/dist/index.d.ts:1091
 
 #### Inherited from
 
@@ -231,7 +231,7 @@ Defined in: web-fetcher/dist/index.d.ts:1090
 
 > `optional` **onPause**: `OnFetchPauseCallback`
 
-Defined in: web-fetcher/dist/index.d.ts:1110
+Defined in: web-fetcher/dist/index.d.ts:1111
 
 ***
 
@@ -239,7 +239,7 @@ Defined in: web-fetcher/dist/index.d.ts:1110
 
 > `optional` **output**: `object`
 
-Defined in: web-fetcher/dist/index.d.ts:1056
+Defined in: web-fetcher/dist/index.d.ts:1057
 
 #### cookies?
 
@@ -259,7 +259,7 @@ Defined in: web-fetcher/dist/index.d.ts:1056
 
 > `optional` **overrideSessionState**: `boolean`
 
-Defined in: web-fetcher/dist/index.d.ts:1054
+Defined in: web-fetcher/dist/index.d.ts:1055
 
 #### Inherited from
 
@@ -271,7 +271,7 @@ Defined in: web-fetcher/dist/index.d.ts:1054
 
 > `optional` **proxy**: `string` \| `string`[]
 
-Defined in: web-fetcher/dist/index.d.ts:1060
+Defined in: web-fetcher/dist/index.d.ts:1061
 
 #### Inherited from
 
@@ -283,7 +283,7 @@ Defined in: web-fetcher/dist/index.d.ts:1060
 
 > `optional` **requestHandlerTimeoutSecs**: `number`
 
-Defined in: web-fetcher/dist/index.d.ts:1088
+Defined in: web-fetcher/dist/index.d.ts:1089
 
 #### Inherited from
 
@@ -295,7 +295,7 @@ Defined in: web-fetcher/dist/index.d.ts:1088
 
 > `optional` **retries**: `number`
 
-Defined in: web-fetcher/dist/index.d.ts:1092
+Defined in: web-fetcher/dist/index.d.ts:1093
 
 #### Inherited from
 
@@ -307,7 +307,7 @@ Defined in: web-fetcher/dist/index.d.ts:1092
 
 > `optional` **sessionPoolOptions**: `SessionPoolOptions`
 
-Defined in: web-fetcher/dist/index.d.ts:1053
+Defined in: web-fetcher/dist/index.d.ts:1054
 
 #### Inherited from
 
@@ -319,7 +319,7 @@ Defined in: web-fetcher/dist/index.d.ts:1053
 
 > `optional` **sessionState**: `any`
 
-Defined in: web-fetcher/dist/index.d.ts:1052
+Defined in: web-fetcher/dist/index.d.ts:1053
 
 #### Inherited from
 
@@ -331,7 +331,7 @@ Defined in: web-fetcher/dist/index.d.ts:1052
 
 > `optional` **sites**: `FetchSite`[]
 
-Defined in: web-fetcher/dist/index.d.ts:1093
+Defined in: web-fetcher/dist/index.d.ts:1094
 
 #### Inherited from
 
@@ -343,7 +343,7 @@ Defined in: web-fetcher/dist/index.d.ts:1093
 
 > `optional` **storage**: `StorageOptions`
 
-Defined in: web-fetcher/dist/index.d.ts:1065
+Defined in: web-fetcher/dist/index.d.ts:1066
 
 Storage configuration for session isolation and persistence.
 
@@ -369,7 +369,7 @@ Defined in: web-fetcher/dist/index.d.ts:1045
 
 > `optional` **throwHttpErrors**: `boolean`
 
-Defined in: web-fetcher/dist/index.d.ts:1055
+Defined in: web-fetcher/dist/index.d.ts:1056
 
 #### Inherited from
 
@@ -381,7 +381,7 @@ Defined in: web-fetcher/dist/index.d.ts:1055
 
 > `optional` **timeoutMs**: `number`
 
-Defined in: web-fetcher/dist/index.d.ts:1087
+Defined in: web-fetcher/dist/index.d.ts:1088
 
 #### Inherited from
 
@@ -389,11 +389,23 @@ Defined in: web-fetcher/dist/index.d.ts:1087
 
 ***
 
+### upgradeOnJsContent?
+
+> `optional` **upgradeOnJsContent**: `boolean`
+
+Defined in: web-fetcher/dist/index.d.ts:1046
+
+#### Inherited from
+
+`BaseFetcherProperties.upgradeOnJsContent`
+
+***
+
 ### upgradeThresholdMs?
 
 > `optional` **upgradeThresholdMs**: `number`
 
-Defined in: web-fetcher/dist/index.d.ts:1046
+Defined in: web-fetcher/dist/index.d.ts:1047
 
 #### Inherited from
 
@@ -405,7 +417,7 @@ Defined in: web-fetcher/dist/index.d.ts:1046
 
 > `optional` **url**: `string`
 
-Defined in: web-fetcher/dist/index.d.ts:1094
+Defined in: web-fetcher/dist/index.d.ts:1095
 
 #### Inherited from
 
@@ -417,7 +429,7 @@ Defined in: web-fetcher/dist/index.d.ts:1094
 
 > `optional` **useSiteRegistry**: `boolean`
 
-Defined in: web-fetcher/dist/index.d.ts:1047
+Defined in: web-fetcher/dist/index.d.ts:1048
 
 #### Inherited from
 

@@ -8,7 +8,7 @@
 
 > **testUrlsByLatency**(`urls`, `options`): `Promise`\<[`VerifiedUrl`](../interfaces/VerifiedUrl.md)[]\>
 
-Defined in: [web-searcher/src/utils/latency.ts:12](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/latency.ts#L12)
+Defined in: [web-searcher/src/utils/latency.ts:12](https://github.com/isdk/web-searcher.js/blob/0c4757eb75b3b7c5af0231806f11e7b3c3166736/src/utils/latency.ts#L12)
 
 A general utility to test a list of URLs for availability and latency.
 Returns a list of verified URLs sorted by response time.
@@ -24,6 +24,10 @@ Returns a list of verified URLs sorted by response time.
 #### limit?
 
 `number`
+
+#### proxy?
+
+`string`
 
 #### testPath?
 

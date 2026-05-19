@@ -8,7 +8,7 @@
 
 > **parseHtml**(`html`): [`HtmlData`](../interfaces/HtmlData.md)
 
-Defined in: [web-searcher/src/utils/extractor/parser.ts:49](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/extractor/parser.ts#L49)
+Defined in: [web-searcher/src/utils/extractor/parser.ts:49](https://github.com/isdk/web-searcher.js/blob/0c4757eb75b3b7c5af0231806f11e7b3c3166736/src/utils/extractor/parser.ts#L49)
 
 Parses an HTML string to extract generic metadata structures (Meta tags, JSON-LD, Time tags).
 

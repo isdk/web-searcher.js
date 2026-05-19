@@ -8,7 +8,7 @@
 
 > **fetchPartial**(`url`, `maxBytes`, `options`): `Promise`\<\{ `content`: `string`; `headers`: `Headers`; \} \| `null`\>
 
-Defined in: [web-searcher/src/utils/extractor/fetcher.ts:55](https://github.com/isdk/web-searcher.js/blob/955bc509edda39926bd12c6c2b8c28da7eb13ff5/src/utils/extractor/fetcher.ts#L55)
+Defined in: [web-searcher/src/utils/extractor/fetcher.ts:55](https://github.com/isdk/web-searcher.js/blob/0c4757eb75b3b7c5af0231806f11e7b3c3166736/src/utils/extractor/fetcher.ts#L55)
 
 Fetches a partial amount of content from a URL.
 Automatically handles character set detection from the Content-Type header.
