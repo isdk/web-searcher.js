@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.1.6](https://github.com/isdk/web-searcher.js/compare/v0.1.5...v0.1.6) (2026-05-19)
+
+
+### Features
+
+* support default search parameters via static and instance options ([e0df186](https://github.com/isdk/web-searcher.js/commit/e0df186729f6f20b71c74d9e1056fd0bf6f83c9d))
+* **testUrlsByLatency:** add proxy option and change to no limit by default ([21cfe81](https://github.com/isdk/web-searcher.js/commit/21cfe81f7fd0ebbd5f72394f4e941c47c4781778))
+
+
+### Bug Fixes
+
+* **latency:** fetchWeb should simple effective ([e91baed](https://github.com/isdk/web-searcher.js/commit/e91baedc6d820df60dd1a4468d8fdef02c829842))
+
 ## [0.1.5](https://github.com/isdk/web-searcher.js/compare/v0.1.4...v0.1.5) (2026-05-16)
 
 
