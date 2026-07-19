@@ -8,7 +8,7 @@ import { cloneDeep, defaultsDeep } from "lodash-es";
  * Constructor definition for Searcher subclasses.
  */
 export type SearcherConstructor = new (options?: FetcherOptions) => WebSearcher;
-export { FetcherOptions };
+export type { FetcherOptions };
 
 /**
  * The abstract base class for all search engines.
