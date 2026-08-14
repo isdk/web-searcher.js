@@ -349,6 +349,7 @@ const results = await google.search('open source', {
 | `fillLimit` | `boolean` | 设为 `true`（默认）时，当前引擎返回结果不足 `limit` 时会自动尝试后续引擎。 |
 | `startPage` | `number` | 分页起始页索引。适用于跨会话委托分页场景。默认值：`0`。 |
 | `validator` | `function` | 自定义回调函数验证抓取结果。返回 `false` 时触发故障转移/重试。签名：`(results, context) => boolean \| Promise<boolean>` |
+| `excludeUrls` | `string[]` | 需要从结果中排除的 URL 列表。普通字符串按完整 URL 精确匹配；`/pattern/flags` 形式（如 `/example\.com\//i`）的条目按正则处理。过滤在校验之后通过 `filterResults` 钩子执行，因此校验器始终看到原始结果。 |
 | `...custom` | `any` | 任何其他键都将作为自定义变量传递给模板（例如 `${myVar}`）。 |
 
 #### 标准搜索结果 (Standard Search Result)
@@ -410,6 +411,25 @@ const searcher = new MyDistributedSearcher({
   baseUrls: ['https://node1.com', 'https://node2.com']
 });
 ```
+
+### 排除指定 URL (Filtering Out Excluded URLs)
+
+传入 `excludeUrls` 可在返回结果前剔除 URL 匹配的条目：
+
+```typescript
+const results = await google.search('test', {
+  excludeUrls: [
+    'https://example.com/blocked',   // 完整 URL 精确匹配
+    '/(^|\\.)spam\\.com$/i'           // 正则形式（'/pattern/flags'）
+  ],
+});
+```
+
+- 普通字符串条目按**完整 URL 精确匹配**。
+- `/pattern/flags` 形式的条目按**正则**处理（例如 `/(^|\.)spam\.com$/i` 可匹配 `sub.spam.com`）。
+- 过滤在校验之后执行，因此子类 `validateFetchResult` 重载与 `validator` 选项始终看到原始页面结果，整页被剔空也不会触发故障转移机制。
+- 整页结果全部被排除时不视为 exhausted：搜索器会继续翻页直到达到 `limit`。
+- 默认过滤逻辑位于受保护的 `filterResults(results, context)` 钩子中——可重载自定义，或调用 `super.filterResults(...)` 保留默认行为。
 
 ### 自定义变量
 

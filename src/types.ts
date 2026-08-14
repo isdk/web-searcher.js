@@ -106,6 +106,9 @@ export interface SearchContext {
 
   /** The name of the engine executing the search */
   engine?: string;
+
+  /** The `excludeUrls` option of the current search, if any. */
+  excludeUrls?: string[];
 }
 
 export type SearchTimeRangePreset = 'all' | 'hour' | 'day' | 'week' | 'month' | 'year';
@@ -209,4 +212,20 @@ export interface SearchOptions {
    * @default 0
    */
   startPage?: number;
+
+  /**
+   * A list of URLs to exclude from the search results.
+   *
+   * Results whose URL matches an entry are dropped.
+   * - Plain string entries are matched by exact URL equality.
+   * - Entries in the `/pattern/flags` form (e.g. `/example\.com\//i`) are treated as RegExp.
+   *
+   * Filtering runs after result validation (in the searcher's `filterResults`
+   * hook), so subclass `validateFetchResult` overrides and the `validator`
+   * option always see the raw page results, and an all-excluded page never
+   * triggers the failover mechanism. Such a page is not treated as exhausted
+   * either: the searcher keeps fetching subsequent pages until the `limit` is
+   * reached.
+   */
+  excludeUrls?: string[];
 }

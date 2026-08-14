@@ -349,6 +349,7 @@ const results = await google.search('open source', {
 | `fillLimit` | `boolean` | If `true` (default), continues to subsequent engines in the chain when the current engine returns fewer results than `limit`. |
 | `startPage` | `number` | The page index to start from. Useful when delegating pagination across different sessions. Default: `0`. |
 | `validator` | `function` | Custom callback to validate fetched results. If it returns `false`, triggers failover/retry. Signature: `(results, context) => boolean \| Promise<boolean>`. |
+| `excludeUrls` | `string[]` | URLs to exclude from the results. Plain strings match by exact URL equality; entries like `/example\.com\//i` are treated as RegExp. Filtering runs after validation in the `filterResults` hook, so validators always see the raw results. |
 | `...custom` | `any` | Any other keys are passed as custom variables to the template (e.g., `${myVar}`). |
 
 #### Standard Search Result
@@ -410,6 +411,25 @@ const searcher = new MyDistributedSearcher({
   baseUrls: ['https://node1.com', 'https://node2.com']
 });
 ```
+
+### Filtering Out Excluded URLs
+
+Pass `excludeUrls` to drop results whose URL matches a given entry before they are returned:
+
+```typescript
+const results = await google.search('test', {
+  excludeUrls: [
+    'https://example.com/blocked',   // exact URL match
+    '/(^|\\.)spam\\.com$/i'           // RegExp form ('/pattern/flags')
+  ],
+});
+```
+
+- Plain string entries are matched by **exact URL equality**.
+- Entries in the `/pattern/flags` form are treated as **RegExp** (e.g. `/(^|\.)spam\.com$/i` matches `sub.spam.com`).
+- Filtering is applied after validation, so subclass `validateFetchResult` overrides and the `validator` option always see the raw page results, and an all-excluded page never triggers the failover mechanism.
+- A page whose results are all excluded is not treated as exhausted: the searcher keeps fetching subsequent pages until `limit` is reached.
+- The default filtering lives in the protected `filterResults(results, context)` hook — override it to customize, or call `super.filterResults(...)` to keep the default behavior.
 
 ### Custom Variables
 

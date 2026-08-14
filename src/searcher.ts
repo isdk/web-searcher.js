@@ -2,6 +2,7 @@ import { FetchActionOptions, FetcherOptions, FetchSession } from "@isdk/web-fetc
 import { addBaseFactoryAbility, IBaseFactoryOptions } from "custom-factory";
 import { PaginationConfig, SearchContext, SearchOptions, StandardSearchResult } from "./types";
 import { injectVariables } from "./utils/inject";
+import { isRegExpStr, toRegExp } from 'util-ex';
 import { cloneDeep, defaultsDeep } from "lodash-es";
 
 /**
@@ -9,6 +10,18 @@ import { cloneDeep, defaultsDeep } from "lodash-es";
  */
 export type SearcherConstructor = new (options?: FetcherOptions) => WebSearcher;
 export type { FetcherOptions };
+
+/**
+ * Checks whether a URL matches an exclude pattern.
+ * String patterns require an exact match; RegExp patterns are tested against the URL.
+ */
+function matchExcludeUrl(url: string, pattern: string | RegExp): boolean {
+  if (pattern instanceof RegExp) {
+    pattern.lastIndex = 0; // avoid stateful `.test()` when the regex carries the 'g' flag
+    return pattern.test(url);
+  }
+  return pattern === url;
+}
 
 /**
  * The abstract base class for all search engines.
@@ -395,6 +408,13 @@ export abstract class WebSearcher extends FetchSession {
             results = await options.transform(results, context);
           }
 
+          // A page that produced no raw results at all means the engine is
+          // exhausted. This check runs before validation/filtering: results that
+          // are all filtered out later (e.g. by excludeUrls) still count as
+          // produced, so the searcher keeps fetching the next page until the
+          // limit is reached.
+          exhausted = !results || results.length === 0;
+
           // 9. VALIDATOR HOOK
           let isValid = true;
           if (this.validateFetchResult) {
@@ -408,10 +428,13 @@ export abstract class WebSearcher extends FetchSession {
             throw new Error(`Results validation failed for engine: ${engineName}, url: ${baseUrl}`);
           }
 
-          if (!results || results.length === 0) {
-            // Exhausted! No more results from this engine.
-            exhausted = true;
-          } else {
+          // 10. Filter results (the base implementation enforces excludeUrls).
+          // This runs after validation so that subclass validateFetchResult
+          // overrides and user validators always see the raw page results, and
+          // an all-excluded page never triggers the failover mechanism.
+          results = await this.filterResults(results, context);
+
+          if (results && results.length > 0) {
             for (const res of results) {
               if (res.url && !seenUrls.has(res.url)) {
                 seenUrls.add(res.url);
@@ -455,6 +478,10 @@ export abstract class WebSearcher extends FetchSession {
    * If this returns false, the instance manager will consider the fetch a failure
    * and automatically switch to the next available baseUrl (if any).
    *
+   * Note: result exclusion via the `excludeUrls` search option is handled by
+   * the {@link filterResults} hook, not this one, so overriding this hook does
+   * not affect it.
+   *
    * @param results - The extracted results.
    * @param context - Context including the current baseUrl and page.
    * @returns A promise resolving to true if valid, false otherwise.
@@ -465,6 +492,36 @@ export abstract class WebSearcher extends FetchSession {
     context: SearchContext
   ): Promise<boolean> {
     return true;
+  }
+
+  /**
+   * Filters the results of a page before they are collected.
+   *
+   * The base implementation enforces the `excludeUrls` search option: results
+   * whose URL matches an entry in `context.excludeUrls` are removed.
+   * - Plain string entries are matched by exact URL equality.
+   * - Entries in the `/pattern/flags` form (e.g. `/example\.com\//i`) are
+   *   treated as RegExp.
+   *
+   * Subclasses can override this hook to customize filtering, or call
+   * `super.filterResults(...)` to keep the default behavior.
+   *
+   * @param results - The results to filter (after validation).
+   * @param context - Context including the current baseUrl and page.
+   * @returns A promise resolving to the filtered results.
+   */
+  protected async filterResults(
+    results: StandardSearchResult[],
+    context: SearchContext
+  ): Promise<StandardSearchResult[]> {
+    const excludeUrls = context.excludeUrls;
+    if (results && excludeUrls && excludeUrls.length > 0) {
+      const patterns = excludeUrls.map(url => (isRegExpStr(url) ? toRegExp(url) : url));
+      return results.filter(
+        item => !item.url || !patterns.some(pattern => matchExcludeUrl(item.url, pattern))
+      );
+    }
+    return results;
   }
 
   /**
