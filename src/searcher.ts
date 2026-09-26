@@ -456,6 +456,17 @@ export abstract class WebSearcher extends FetchSession {
     const settle = (runner: RaceRunner, results?: StandardSearchResult[], error?: any) => {
       runner.settled = true;
       runner.succeeded = error === undefined;
+      // Its work is done: release the engine session immediately instead of
+      // holding its browser/resources until the race ends. Without this, a
+      // settled browser engine keeps its instance alive while queued engines
+      // start, defeating the concurrency cap at transition points. Session
+      // dispose is idempotent; the end-of-race dispose loop stays as a
+      // safety net.
+      const instance = runner.instance;
+      runner.instance = undefined;
+      if (instance) {
+        void instance.dispose().catch(() => { });
+      }
       if (error !== undefined) {
         if (!exitDecided && !isAbortLikeError(error)) {
           errors.push({ engineName: runner.engineName, error });
