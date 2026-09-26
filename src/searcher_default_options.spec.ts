@@ -170,7 +170,7 @@ describe('WebSearcher Default Options Logic', () => {
     }));
   });
 
-  it('should respect default fillLimit: false setting', async () => {
+  it('should respect default fillLimit: false setting (first successful engine wins under race)', async () => {
     WebSearcher.register(FillLimitMock1, 'F1');
     WebSearcher.register(FillLimitMock2, 'F2');
 
@@ -180,13 +180,16 @@ describe('WebSearcher Default Options Logic', () => {
     const spy1 = vi.spyOn(FillLimitMock1.prototype, 'search');
     const spy2 = vi.spyOn(FillLimitMock2.prototype, 'search');
 
-    await WebSearcher.search(['F1', 'F2'], 'query');
+    const results = await WebSearcher.search(['F1', 'F2'], 'query');
 
+    // Under the concurrent race strategy all engines start together.
     expect(spy1).toHaveBeenCalledTimes(1);
-    expect(spy2).not.toHaveBeenCalled();
+    expect(spy2).toHaveBeenCalledTimes(1);
+    // fillLimit: false => the first successful engine's results are returned.
+    expect(results).toEqual([{ title: 'R1', url: 'u1' }]);
   });
 
-  it('should handle different limits for different engines', async () => {
+  it('should pass the full limit to each engine under race strategy', async () => {
     WebSearcher.register(FillLimitMock1, 'MultiLimitBase');
     WebSearcher.register(FillLimitMock2, 'MultiLimitSub');
 
@@ -198,7 +201,9 @@ describe('WebSearcher Default Options Logic', () => {
 
     await WebSearcher.search(['MultiLimitBase', 'MultiLimitSub'], 'query');
 
+    // Race: each competitor gets its own effective limit (no remaining-quota
+    // distribution like the sequential fallback).
     expect(spy1).toHaveBeenCalledWith('query', expect.objectContaining({ limit: 2 }));
-    expect(spy2).toHaveBeenCalledWith('query', expect.objectContaining({ limit: 4 }));
+    expect(spy2).toHaveBeenCalledWith('query', expect.objectContaining({ limit: 5 }));
   });
 });

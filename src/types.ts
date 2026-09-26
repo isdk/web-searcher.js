@@ -214,6 +214,41 @@ export interface SearchOptions {
   startPage?: number;
 
   /**
+   * How multiple engines are executed when `engineNames` is an array.
+   *
+   * - `'race'` (default): all engines are started concurrently. As soon as one
+   *   engine reaches the requested `limit`, the remaining engines are aborted
+   *   and the results are returned immediately. If the first engines to settle
+   *   do not reach the `limit`, a grace period (`gracePeriodMs`) waits for the
+   *   others before returning whatever has been collected.
+   * - `'fallback'`: the original sequential behavior. Engines are tried one by
+   *   one in order; the next engine is only used when the previous one fails
+   *   or does not fill the `limit`.
+   *
+   * A single engine name (not an array) always uses the sequential path.
+   * @default 'race'
+   */
+  strategy?: 'race' | 'fallback';
+
+  /**
+   * Grace period in milliseconds for the `'race'` strategy.
+   *
+   * After the first engines settle without reaching the `limit`, the searcher
+   * waits this long for the remaining engines before returning the collected
+   * results anyway. Set to `0` to return as soon as the first engine settles.
+   * @default 2000
+   */
+  gracePeriodMs?: number;
+
+  /**
+   * Maximum number of engines searched simultaneously under the `'race'`
+   * strategy (see {@link strategy}). Extra engines wait in declaration order
+   * for a free slot. Has no effect on `'fallback'`.
+   * @default Infinity
+   */
+  concurrency?: number;
+
+  /**
    * A list of URLs to exclude from the search results.
    *
    * Results whose URL matches an entry are dropped.

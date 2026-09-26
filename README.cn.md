@@ -41,19 +41,28 @@ console.log(results);
 
 ### 3. 多引擎编排 (Multi-Engine Orchestration)
 
-`WebSearcher.search` 具有内置的 **瀑布流（Waterfall）** 补偿机制。当您传入一个引擎数组时，它会按序执行并自动填补结果数量：
+当您传入一个引擎数组时，`WebSearcher.search` **默认并发执行**（`strategy: 'race'`）：
 
-- **自动补全**：如果前面的引擎返回结果不足（少于 `limit`），它会自动请求后续引擎以补齐缺口。
-- **容错降级**：如果某个引擎发生错误（如被封禁、超时），它会自动跳过并尝试下一个引擎，确保最终尽可能返回结果。
-- **自动去重**：合并结果时会自动基于 `url` 进行去重。
+- **并发竞争**：每个引擎都以完整的 `limit` 搜索。第一个凑满 `limit` 的引擎胜出，其余引擎立即被中止（进行中的导航会被取消，而不是等待超时）。
+- **宽限期**：如果先完成的引擎没有凑满 `limit`，搜索器最多等待 `gracePeriodMs`（默认 `2000`）让其余引擎补足；期间到达的结果会被合并。若宽限期到点时结果仍为空，则继续等待剩余引擎，而不是空手返回。
+- **并发度上限**：`concurrency` 限制同时运行的引擎数量（默认不限制）。排队的引擎按声明顺序等待，竞赛决出胜负后不再启动。
+- **确定性顺序**：结果按引擎声明顺序合并并基于 `url` 去重，无论哪个引擎先答完，顺序都与串行一致。
+- **容错语义**：失败的引擎会被跳过（记录警告）；只有当所有引擎都真实失败时才抛出第一个错误。
 
 ```typescript
-// 瀑布流搜索：优先用 Google，不够就用 Bing，还不够就用 SearXNG 补齐
+// 并发竞争：哪个引擎先凑满 20 条就用谁的结果
 const results = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open source', {
   limit: 20,
-  fillLimit: true // 默认即为 true
+});
+
+// 串行瀑布流（原始行为）：先试 Google，不够用 Bing 补，再不够用 SearXNG 补齐
+const sequential = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open source', {
+  limit: 20,
+  strategy: 'fallback',
 });
 ```
+
+> **注意**：`fillLimit: false` 仍表示“第一个成功的引擎之后即停止”——在 race 策略下，链条会截断在声明顺序中第一个携带该标志的引擎处，与串行行为完全一致。
 
 ### 4. 有状态会话 (Stateful Session)
 
@@ -346,7 +355,10 @@ const results = await google.search('open source', {
 | `safeSearch` | `string` | 安全搜索级别：`'off'`, `'moderate'`, `'strict'`。 |
 | `transform` | `function` | 运行时自定义转换函数。在引擎内置转换之后运行。 |
 | `baseUrls` | `string[]` \| `Record<string, string[]>` | 覆盖引擎的基 URL。可以是单个引擎的 URL 数组，或引擎名称到 URL 数组的映射。 |
-| `fillLimit` | `boolean` | 设为 `true`（默认）时，当前引擎返回结果不足 `limit` 时会自动尝试后续引擎。 |
+| `strategy` | `'race'` \| `'fallback'` | 多引擎的执行方式。`'race'`（默认）并发搜索，凑满 `limit` 立即返回；`'fallback'` 按顺序逐个尝试引擎。 |
+| `gracePeriodMs` | `number` | `'race'` 策略下，先完成的引擎未凑满 `limit` 时的宽限期（毫秒）。默认值：`2000`。 |
+| `concurrency` | `number` | `'race'` 策略下同时搜索的引擎数量上限。多余的引擎按声明顺序排队等待。默认不限制。 |
+| `fillLimit` | `boolean` | 设为 `true`（默认）时，当前引擎返回结果不足 `limit` 会继续尝试后续引擎。在 `'race'` 下，链条截断于声明顺序中第一个 `fillLimit: false` 的引擎。 |
 | `startPage` | `number` | 分页起始页索引。适用于跨会话委托分页场景。默认值：`0`。 |
 | `validator` | `function` | 自定义回调函数验证抓取结果。返回 `false` 时触发故障转移/重试。签名：`(results, context) => boolean \| Promise<boolean>` |
 | `excludeUrls` | `string[]` | 需要从结果中排除的 URL 列表。普通字符串按完整 URL 精确匹配；`/pattern/flags` 形式（如 `/example\.com\//i`）的条目按正则处理。过滤在校验之后通过 `filterResults` 钩子执行，因此校验器始终看到原始结果。 |

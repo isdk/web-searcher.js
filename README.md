@@ -41,19 +41,28 @@ console.log(results);
 
 ### 3. Multi-Engine Orchestration
 
-`WebSearcher.search` features a built-in **Waterfall** compensation mechanism. When you provide an array of engine names, it executes them sequentially and automatically fills the result count:
+When you provide an array of engine names, `WebSearcher.search` runs them **concurrently by default** (`strategy: 'race'`):
 
-- **Automatic Completion**: If the preceding engines return fewer results than the `limit`, it automatically requests subsequent engines to fill the gap.
-- **Failover & Degradation**: If an engine fails (e.g., blocked, timeout), it automatically skips it and tries the next one, ensuring results are returned whenever possible.
-- **Auto Deduplication**: It automatically de-duplicates results based on their `url` during the merging process.
+- **Race**: Every engine searches with the full `limit`. The first engine to reach the `limit` wins; the remaining engines are aborted immediately (in-flight navigation is cancelled, not waited on).
+- **Grace Period**: If the settled engines do not fill the `limit`, the searcher waits up to `gracePeriodMs` (default `2000`) for the others; later arrivals are merged in. If the pool is still empty when the grace expires, it keeps waiting for the remaining engines instead of returning nothing.
+- **Bounded Concurrency**: `concurrency` caps how many engines run at once (default: unlimited). Queued engines wait in declaration order and are never started once the race is decided.
+- **Deterministic Order**: Results are merged in engine declaration order and de-duplicated by `url`, mirroring the sequential order regardless of which engine answered first.
+- **Failover Semantics**: Engines that fail are skipped (a warning is logged); only when every engine genuinely fails is the first error thrown.
 
 ```typescript
-// Waterfall search: Google first, Bing as fallback, SearXNG as final backup
+// Concurrent race: whichever engine fills 20 results first wins
 const results = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open source', {
   limit: 20,
-  fillLimit: true // Enabled by default
+});
+
+// Sequential waterfall (the original behavior): try Google, fill the gap from Bing, then SearXNG
+const sequential = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open source', {
+  limit: 20,
+  strategy: 'fallback',
 });
 ```
+
+> **Note**: `fillLimit: false` still means "stop after the first successful engine" — under the race strategy the chain is truncated at the first engine (in declaration order) carrying that flag, exactly like the sequential path.
 
 ### 4. Stateful Session
 
@@ -346,7 +355,10 @@ const results = await google.search('open source', {
 | `safeSearch` | `string` | Safe search level: `'off'`, `'moderate'`, `'strict'`. |
 | `transform` | `function` | A custom function to filter or modify results at runtime. Runs after the engine's built-in transform. |
 | `baseUrls` | `string[]` \| `Record<string, string[]>` | Override the base URLs for engines. Can be an array for a single engine, or a map of engine names to URL arrays. |
-| `fillLimit` | `boolean` | If `true` (default), continues to subsequent engines in the chain when the current engine returns fewer results than `limit`. |
+| `strategy` | `'race'` \| `'fallback'` | How multiple engines are executed. `'race'` (default) searches concurrently and returns as soon as the `limit` is reached; `'fallback'` tries engines one by one in order. |
+| `gracePeriodMs` | `number` | Grace period in milliseconds for the `'race'` strategy after the first engines settle without reaching the `limit` (default: `2000`). |
+| `concurrency` | `number` | Maximum number of engines searched simultaneously under the `'race'` strategy. Extra engines wait in declaration order. Default: unlimited. |
+| `fillLimit` | `boolean` | If `true` (default), continues to subsequent engines when the current engine returns fewer results than `limit`. Under `'race'`, the chain is truncated at the first engine (in declaration order) with `fillLimit: false`. |
 | `startPage` | `number` | The page index to start from. Useful when delegating pagination across different sessions. Default: `0`. |
 | `validator` | `function` | Custom callback to validate fetched results. If it returns `false`, triggers failover/retry. Signature: `(results, context) => boolean \| Promise<boolean>`. |
 | `excludeUrls` | `string[]` | URLs to exclude from the results. Plain strings match by exact URL equality; entries like `/example\.com\//i` are treated as RegExp. Filtering runs after validation in the `filterResults` hook, so validators always see the raw results. |

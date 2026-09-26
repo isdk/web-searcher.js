@@ -24,6 +24,20 @@ function matchExcludeUrl(url: string, pattern: string | RegExp): boolean {
 }
 
 /**
+ * Checks whether an error represents a cancellation we initiated ourselves
+ * (e.g. aborting loser engines after the race has been decided), as opposed to
+ * a real engine failure.
+ */
+function isAbortLikeError(error: any): boolean {
+  if (!error) return false;
+  if (error.name === 'AbortError' || error.name === 'TimeoutError') return true;
+  if (error.code === 499 /* ErrorCode.Aborted */) return true;
+  if (typeof error.code === 'string' && error.code.toUpperCase().includes('ABORT')) return true;
+  const msg = typeof error.message === 'string' ? error.message : '';
+  return /abort|cancel/i.test(msg);
+}
+
+/**
  * The abstract base class for all search engines.
  *
  * It extends `FetchSession`, meaning each `WebSearcher` instance is an active session
@@ -150,10 +164,24 @@ export abstract class WebSearcher extends FetchSession {
   declare static setAliases: (ctor: typeof WebSearcher, ...aliases: string[]) => void;
 
   /**
-   * Static helper to execute a one-off search or a fallback chain.
+   * Static helper to execute a one-off search, a concurrent race, or a fallback
+   * chain across multiple engines.
    *
-   * It creates an instance of the specified engine(s), executes the search, and automatically
-   * falls back to the next engine in the list if the current one fails or is exhausted.
+   * When `engineNames` is an array (and `options.strategy` is not `'fallback'`),
+   * all engines are started concurrently (`strategy: 'race'`, the default):
+   *
+   * - Every engine runs with the full requested `limit`.
+   * - The first engine whose results reach the `limit` wins: the remaining
+   *   engines are aborted and the results are returned immediately.
+   * - Otherwise, once engines have settled without reaching the `limit`, the
+   *   race waits up to `options.gracePeriodMs` (default 2000) for the remaining
+   *   engines, then returns whatever has been collected.
+   * - Results are merged in `engineNames` declaration order and deduplicated by
+   *   URL, mirroring the sequential fallback order.
+   *
+   * With `strategy: 'fallback'` (or a single engine name), engines are tried one
+   * by one in order: the next engine is only used when the previous one fails or
+   * is exhausted.
    *
    * @param engineNames - The name(s) of the engine(s) to use (e.g., 'Google' or ['SearXNG', 'Google']).
    * @param query - The search query string.
@@ -166,6 +194,12 @@ export abstract class WebSearcher extends FetchSession {
     options: SearchOptions & FetcherOptions = {}
   ): Promise<StandardSearchResult[]> {
     const engines = Array.isArray(engineNames) ? engineNames : [engineNames];
+    const strategy = options.strategy ??
+      (this.getDefaultOptions() as any).strategy ?? 'race';
+    if (engines.length > 1 && strategy !== 'fallback') {
+      return this._searchRace(engines, query, options);
+    }
+
     const allResults: StandardSearchResult[] = [];
 
     for (let i = 0; i < engines.length; i++) {
@@ -214,6 +248,323 @@ export abstract class WebSearcher extends FetchSession {
 
     return allResults;
   }
+  /**
+   * Concurrent race across all engines (`strategy: 'race'`).
+   *
+   * Every engine runs with the full requested `limit`. Settled engines are
+   * merged into a shared, URL-deduplicated pool in declaration order. The race
+   * ends as soon as:
+   * - the pool reaches the `limit` (remaining engines are aborted), or
+   * - `fillLimit === false` and the first engine returned any result, or
+   * - the grace period (`gracePeriodMs`) expires after the first settle, or
+   * - all engines have settled (the pool is returned as-is).
+   *
+   * At most `options.concurrency` engines run simultaneously; the rest wait in
+   * declaration order for a free slot (queued engines are never started once
+   * the race has been decided).
+   *
+   * If every engine failed and at least one error was not caused by our own
+   * cancellation, the first such error is rethrown (mirrors the sequential
+   * fallback behavior).
+   *
+   * @internal
+   */
+  private static async _searchRace(
+    engines: string[],
+    query: string,
+    options: SearchOptions & FetcherOptions
+  ): Promise<StandardSearchResult[]> {
+    // Resolve the effective limit from the first engine's defaults (same as sequential).
+    const firstCtor = (this as any).get(engines[0]);
+    const firstDefaults = firstCtor
+      ? firstCtor.getDefaultOptions()
+      : (this as any).getDefaultOptions();
+    const firstEffective = defaultsDeep({}, options, firstDefaults) as SearchOptions;
+    const limit = firstEffective.limit || 10;
+    const gracePeriodMs = (options.gracePeriodMs ??
+      (this.getDefaultOptions() as any).gracePeriodMs ?? 2000) as number;
+    const concurrencyOption = (options as any).concurrency ??
+      (this.getDefaultOptions() as any).concurrency;
+    const concurrency =
+      typeof concurrencyOption === 'number' && concurrencyOption >= 1
+        ? Math.floor(concurrencyOption)
+        : Infinity;
+    interface RaceRunner {
+      engineName: string;
+      engineIndex: number;
+      promise: Promise<StandardSearchResult[]>;
+      /** Aborts the in-flight search (if any) and disposes the engine session. */
+      abort: () => Promise<void>;
+      /** Starts the engine search (concurrency scheduler entry point). */
+      start: () => void;
+      /** True once the runner has been started by the scheduler. */
+      started: boolean;
+      /** The engine instance once created; undefined while still creating. */
+      instance?: WebSearcher;
+      /** URL-deduplicated results, kept per runner for the ordered final merge. */
+      results?: StandardSearchResult[];
+      /** This engine's effective fillLimit === false flag (from its own defaults). */
+      fillLimitFalse: boolean;
+      /** True once cancellation has been requested for this runner. */
+      abortRequested: boolean;
+      /** True once the runner promise has settled. */
+      settled: boolean;
+      /** True when the runner settled without an error (even with zero items). */
+      succeeded?: boolean;
+    }
+
+    const runners: RaceRunner[] = engines.map((engineName, engineIndex) => {
+      const runner: RaceRunner = {
+        engineName,
+        engineIndex,
+        promise: undefined as any,
+        abort: undefined as any,
+        start: undefined as any,
+        fillLimitFalse: false,
+        abortRequested: false,
+        settled: false,
+        started: false,
+      };
+
+      runner.start = () => {
+        if (runner.started) return;
+        runner.started = true;
+        runner.promise = (async (): Promise<StandardSearchResult[]> => {
+          const engineCtor = (this as any).get(engineName);
+          const engineDefaults = engineCtor
+            ? engineCtor.getDefaultOptions()
+            : (this as any).getDefaultOptions();
+          // Final effective options for this engine: Call Options > Engine Defaults.
+          // Each competitor uses its own effective limit and fillLimit.
+          const currentOptions = defaultsDeep({}, options, engineDefaults);
+          runner.fillLimitFalse = (currentOptions as any).fillLimit === false;
+          const instanceOptions = { ...options, ...currentOptions } as SearchOptions & FetcherOptions;
+          const instance = (this as any).createObject(engineName, instanceOptions) as WebSearcher;
+          if (!instance) {
+            throw new Error(`Search engine not found: ${engineName}`);
+          }
+          runner.instance = instance;
+          if (runner.abortRequested) {
+            // The race was decided while we were creating the instance.
+            await instance.dispose().catch(() => { });
+            return [];
+          }
+          try {
+            return await instance.search(query, instanceOptions);
+          } catch (error: any) {
+            if (runner.abortRequested) {
+              // A cancelled loser is never a real failure, whatever the shape of
+              // the underlying cancellation error.
+              return [];
+            }
+            throw error;
+          }
+        })();
+        runner.promise.then(
+          (results) => settle(runner, results),
+          (error) => settle(runner, undefined, error)
+        );
+      };
+
+      runner.abort = async () => {
+        if (runner.abortRequested) return;
+        runner.abortRequested = true;
+        const instance = runner.instance;
+        if (!instance) return; // not created yet; the runner self-disposes
+        try {
+          const session = instance as any;
+          if (typeof session.abort === 'function') {
+            // web-fetcher with abort support: cancel in-flight work (rejecting
+            // pending requests/queued actions), then free the resources.
+            await session.abort('race: superseded by another engine');
+          } else {
+            // Older web-fetcher: best-effort disposal only.
+            await instance.dispose();
+          }
+        } catch {
+          // Loser cleanup must never escape the race.
+        }
+      };
+
+      return runner;
+    });
+
+    const errors: Array<{ engineName: string; error: any }> = [];
+    let pendingCount = runners.length;
+    let exitDecided = false;
+    let graceTimer: ReturnType<typeof setTimeout> | undefined;
+    // Set when the grace period expired with an empty pool: instead of
+    // returning nothing, wait for the remaining engines to settle on their own
+    // (bounded by their own timeouts). Returning zero results while competitors
+    // are still running is almost never what the caller wants.
+    let waitAllSettled = false;
+    // Set when the exit was decided by fillLimit:false: in the sequential path
+    // the chain stops after the first successful engine whose effective
+    // fillLimit is false, so under the race we only merge the results of engines
+    // declared at or before that one.
+    let fillLimitCutIndex: number | undefined;
+    // True when at least one engine was still running when the race ended
+    // (i.e. it got cancelled by us); its cancellation is not a real failure.
+    let hasAbortedLosers = false;
+    // Incremental deduplicated count across all settled runners, used only for
+    // the exit decision; the final ordered merge happens after the race ends.
+    let arrivedCount = 0;
+    const arrivedUrls = new Set<string>();
+
+    let resolveExit!: () => void;
+    const exitPromise = new Promise<void>((resolve) => { resolveExit = resolve; });
+
+    const decideExit = () => {
+      if (exitDecided) return;
+      exitDecided = true;
+      if (graceTimer !== undefined) {
+        clearTimeout(graceTimer);
+        graceTimer = undefined;
+      }
+      // Cancel every still-running loser. Their rejections are swallowed by the
+      // runner itself (abort-like errors) and cleanup is idempotent.
+      for (const runner of runners) {
+        if (!runner.settled) {
+          hasAbortedLosers = true;
+          runner.abort();
+        }
+      }
+      resolveExit();
+    };
+
+    const armGraceIfNeeded = () => {
+      if (exitDecided || graceTimer !== undefined) return;
+      if (gracePeriodMs <= 0) {
+        decideExit();
+        return;
+      }
+      graceTimer = setTimeout(() => {
+        graceTimer = undefined;
+        if (exitDecided) return;
+        if (arrivedCount === 0) {
+          // Empty pool: keep waiting for the remaining engines instead of
+          // returning zero results (bounded by their own timeouts).
+          waitAllSettled = true;
+          return;
+        }
+        decideExit();
+      }, gracePeriodMs);
+      // Don't keep the event loop alive just for the grace period.
+      (graceTimer as any)?.unref?.();
+    };
+
+    const settle = (runner: RaceRunner, results?: StandardSearchResult[], error?: any) => {
+      runner.settled = true;
+      runner.succeeded = error === undefined;
+      if (error !== undefined) {
+        if (!exitDecided && !isAbortLikeError(error)) {
+          errors.push({ engineName: runner.engineName, error });
+          console.warn(`[WebSearcher] Engine '${runner.engineName}' failed:`, error);
+        }
+      } else {
+        // Always keep completed results (even when the exit was already
+        // decided): the final merge runs after the exit, ordered by engine
+        // declaration, so nothing that completed successfully is lost.
+        if (results && results.length > 0) {
+          const fresh: StandardSearchResult[] = [];
+          for (const res of results) {
+            if (res.url && !arrivedUrls.has(res.url)) {
+              arrivedUrls.add(res.url);
+              fresh.push(res);
+              arrivedCount += 1;
+            }
+          }
+          runner.results = fresh;
+        }
+        if (!exitDecided) {
+          if (runner.fillLimitFalse) {
+            // The chain would have stopped right here in the sequential path.
+            fillLimitCutIndex = runner.engineIndex;
+            decideExit();
+          } else if (arrivedCount >= limit) {
+            decideExit();
+          }
+        }
+      }
+      pendingCount -= 1;
+      if (exitDecided) return;
+      if (pendingCount === 0) {
+        // Everything settled without reaching the limit.
+        decideExit();
+      } else if (!waitAllSettled) {
+        // Give the remaining engines a chance to top up the pool.
+        armGraceIfNeeded();
+      }
+      // Free slot: the next queued engine may start now. No-op after the exit
+      // is decided (queued engines are never started once the race is over).
+      pump();
+    };
+
+    // Concurrency scheduler: engines start in declaration order, at most
+    // `concurrency` at a time. Invariant: active = startedCount - settledCount
+    // (only started runners can settle).
+    let nextStartIndex = 0;
+    let startedCount = 0;
+    const pump = () => {
+      if (exitDecided) return;
+      const settledCount = runners.length - pendingCount;
+      while (
+        nextStartIndex < runners.length &&
+        startedCount - settledCount < concurrency
+      ) {
+        runners[nextStartIndex++].start();
+        startedCount += 1;
+      }
+    };
+
+    pump();
+
+    await exitPromise;
+
+    // Dispose every engine session (winners included; losers were aborted above).
+    await Promise.all(runners.map(async (runner) => {
+      try {
+        await runner.instance?.dispose().catch(() => { });
+      } catch {
+        // Ignore disposal failures.
+      }
+    }));
+
+    // Final merge in engineNames declaration order: mirrors the sequential
+    // fallback ordering, regardless of which engine answered first.
+    // With fillLimit:false the chain is truncated at the first successful
+    // engine (in declaration order) carrying that flag.
+    const cutIndex = fillLimitCutIndex ?? runners.length - 1;
+    const collected: StandardSearchResult[] = [];
+    const seenUrls = new Set<string>();
+    for (const runner of runners) {
+      if (runner.engineIndex > cutIndex) break;
+      for (const res of runner.results || []) {
+        if (res.url && !seenUrls.has(res.url)) {
+          seenUrls.add(res.url);
+          collected.push(res);
+        }
+      }
+    }
+
+    if (
+      collected.length === 0 &&
+      errors.length > 0 &&
+      !hasAbortedLosers &&
+      runners.every((runner) => !runner.succeeded)
+    ) {
+      // Only treat failures as fatal when every engine genuinely failed on its
+      // own. An engine that settled successfully (even with zero items) means
+      // the search itself worked — like the sequential path, just return the
+      // (possibly empty) pool. And if any engine was still running when we
+      // gave up (grace period expired), those cancellations are not failures
+      // either.
+      throw errors[0].error;
+    }
+
+    return collected.slice(0, limit);
+  }
+
   // === Instance Members ===
 
   /**
