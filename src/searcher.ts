@@ -476,16 +476,18 @@ export abstract class WebSearcher extends FetchSession {
         // Always keep completed results (even when the exit was already
         // decided): the final merge runs after the exit, ordered by engine
         // declaration, so nothing that completed successfully is lost.
+        // Results are stored in full — cross-engine deduplication happens
+        // only in the declaration-order merge below, so an engine that
+        // arrives first cannot steal a URL from an earlier-declared one.
         if (results && results.length > 0) {
-          const fresh: StandardSearchResult[] = [];
+          runner.results = results;
+          // Incremental, per-URL arrival count for the exit decision only.
           for (const res of results) {
             if (res.url && !arrivedUrls.has(res.url)) {
               arrivedUrls.add(res.url);
-              fresh.push(res);
               arrivedCount += 1;
             }
           }
-          runner.results = fresh;
         }
         if (!exitDecided) {
           if (runner.fillLimitFalse) {

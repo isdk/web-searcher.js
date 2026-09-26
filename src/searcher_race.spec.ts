@@ -90,6 +90,31 @@ describe('WebSearcher static search: race strategy', () => {
     expect(results[9].url).toBe('http://B.com/4');
   });
 
+  it('should let the earlier-declared engine win a URL even when a later engine arrives first', async () => {
+    // RB (declared second) finishes first with the same URL that RA
+    // (declared first) also returns. The declaration-order merge must keep
+    // RA's copy, not the one that merely arrived first.
+    registerMockEngine('RA', () =>
+      new Promise<StandardSearchResult[]>((resolve) =>
+        setTimeout(() => resolve([
+          { title: 'A dup', url: 'http://shared.com/x' },
+          { title: 'A own', url: 'http://A.com/own' },
+        ]), 300)
+      )
+    );
+    registerMockEngine('RB', async () => [
+      { title: 'B dup', url: 'http://shared.com/x' },
+      { title: 'B own', url: 'http://B.com/own' },
+    ]);
+
+    const results = await WebSearcher.search(['RA', 'RB'], 'query', { limit: 10 });
+
+    expect(results).toHaveLength(3);
+    expect(results[0]).toEqual({ title: 'A dup', url: 'http://shared.com/x' });
+    expect(results[1].url).toBe('http://A.com/own');
+    expect(results[2].url).toBe('http://B.com/own');
+  });
+
   it('should wait the grace period when settled engines do not fill the limit', async () => {
     registerMockEngine('RA', async () => items('A', 3)); // settles immediately
     registerMockEngine('RB', () =>
