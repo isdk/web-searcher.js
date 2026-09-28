@@ -24,6 +24,23 @@ function matchExcludeUrl(url: string, pattern: string | RegExp): boolean {
 }
 
 /**
+ * Emits a `console.log` line for the race scheduler (engine start/settle/abort,
+ * race timeout) when race debugging is enabled via the fetcher `debug` option
+ * (`debug: true`, `debug: 'race'`, or an array containing `'race'`).
+ */
+function logRace(
+  options: { debug?: boolean | string | string[] } | undefined,
+  ...args: any[]
+): void {
+  const debug = options?.debug;
+  const enabled =
+    debug === true ||
+    debug === 'race' ||
+    (Array.isArray(debug) && debug.includes('race'));
+  if (enabled) console.log('[WebSearcher]', ...args);
+}
+
+/**
  * Checks whether an error represents a cancellation we initiated ourselves
  * (e.g. aborting loser engines after the race has been decided), as opposed to
  * a real engine failure.
@@ -35,6 +52,29 @@ function isAbortLikeError(error: any): boolean {
   if (typeof error.code === 'string' && error.code.toUpperCase().includes('ABORT')) return true;
   const msg = typeof error.message === 'string' ? error.message : '';
   return /abort|cancel/i.test(msg);
+}
+
+/**
+ * Probes a search-engine instance (and its underlying fetch engine) for the
+ * activity signals defined by the `firstByteMs` opt-in contract on
+ * SearchOptions: `activityTracked` + `lastActivityAt`, optionally accompanied
+ * by `fetch:progress` events on the session event bus.
+ */
+function probeEngineActivity(instance: any): {
+  tracked: boolean;
+  lastActivityAt?: number;
+} {
+  if (!instance) return { tracked: false };
+  const engine = instance.context?.internal?.engine ?? instance.engine;
+  const sources = [instance, engine];
+  let tracked = false;
+  let lastActivityAt: number | undefined;
+  for (const source of sources) {
+    if (source?.activityTracked) tracked = true;
+    if (typeof source?.lastActivityAt === 'number')
+      lastActivityAt = source.lastActivityAt;
+  }
+  return { tracked, lastActivityAt };
 }
 
 /**
@@ -176,6 +216,11 @@ export abstract class WebSearcher extends FetchSession {
    * - Otherwise, once engines have settled without reaching the `limit`, the
    *   race waits up to `options.gracePeriodMs` (default 2000) for the remaining
    *   engines, then returns whatever has been collected.
+   * - The whole race is bounded by `options.raceTimeoutMs` (default 30000):
+   *   when it elapses, still-running engines are aborted and the pool collected
+   *   so far is returned. This caps the worst case where a hanging engine would
+   *   otherwise hold the search hostage until its own (possibly minutes-long)
+   *   fetch timeout.
    * - Results are merged in `engineNames` declaration order and deduplicated by
    *   URL, mirroring the sequential fallback order.
    *
@@ -257,6 +302,8 @@ export abstract class WebSearcher extends FetchSession {
    * - the pool reaches the `limit` (remaining engines are aborted), or
    * - `fillLimit === false` and the first engine returned any result, or
    * - the grace period (`gracePeriodMs`) expires after the first settle, or
+   * - the hard race timeout (`raceTimeoutMs`) elapses (remaining engines are
+   *   aborted and the pool so far is returned), or
    * - all engines have settled (the pool is returned as-is).
    *
    * At most `options.concurrency` engines run simultaneously; the rest wait in
@@ -289,6 +336,29 @@ export abstract class WebSearcher extends FetchSession {
       typeof concurrencyOption === 'number' && concurrencyOption >= 1
         ? Math.floor(concurrencyOption)
         : Infinity;
+    // Hard upper bound on the whole race. The grace period only bounds the wait
+    // after the first settle; without this, a single engine whose request hangs
+    // holds the race hostage until that engine's own (possibly very long) fetch
+    // timeout fires.
+    const raceTimeoutMs = (options.raceTimeoutMs ??
+      (this.getDefaultOptions() as any).raceTimeoutMs ?? 30000) as number;
+    const raceTimeoutEnabled =
+      typeof raceTimeoutMs === 'number' &&
+      raceTimeoutMs > 0 &&
+      raceTimeoutMs !== Infinity;
+    // Budget for an engine to show its first sign of life (received data).
+    // Engines that report activity (see the `firstByteMs` contract on
+    // SearchOptions) are aborted when they stay silent this long: a
+    // connected-but-silent engine would otherwise only surface at its own
+    // (possibly very long) timeout — or never, when the hang is outside the
+    // HTTP request itself (queue, session pool, retry/instance failover).
+    // Engines without activity tracking stay bounded by raceTimeoutMs only.
+    const firstByteMs = (options.firstByteMs ??
+      (this.getDefaultOptions() as any).firstByteMs ?? 10000) as number;
+    const firstByteEnabled =
+      typeof firstByteMs === 'number' &&
+      firstByteMs > 0 &&
+      firstByteMs !== Infinity;
     interface RaceRunner {
       engineName: string;
       engineIndex: number;
@@ -311,6 +381,14 @@ export abstract class WebSearcher extends FetchSession {
       settled: boolean;
       /** True when the runner settled without an error (even with zero items). */
       succeeded?: boolean;
+      /** Epoch-ms when the runner was started (baseline for the firstByteMs check). */
+      startedAt?: number;
+      /** Hard "no data yet" timer: aborts engines that stay silent for firstByteMs. */
+      stallTimer?: ReturnType<typeof setTimeout>;
+      /** Latest `fetch:progress` timestamp seen on the session event bus. */
+      lastProgressAt?: number;
+      /** Detaches the `fetch:progress` listener attached at start. */
+      unsubscribeProgress?: () => void;
     }
 
     const runners: RaceRunner[] = engines.map((engineName, engineIndex) => {
@@ -326,9 +404,33 @@ export abstract class WebSearcher extends FetchSession {
         started: false,
       };
 
-      runner.start = () => {
-        if (runner.started) return;
-        runner.started = true;
+    runner.start = () => {
+      if (runner.started) return;
+      runner.started = true;
+      runner.startedAt = Date.now();
+      logRace(options, `race: engine '${engineName}' started`);
+      if (firstByteEnabled) {
+        // Aborts this engine if it never reports received data within
+        // firstByteMs of starting. The self-abort settles the runner through
+        // the normal cancellation path, so it is not counted as a failure.
+        runner.stallTimer = setTimeout(() => {
+          runner.stallTimer = undefined;
+          if (runner.settled || exitDecided) return;
+          const { tracked, lastActivityAt } = probeEngineActivity(runner.instance);
+          // Uninstrumented engines are left to raceTimeoutMs.
+          if (!tracked) return;
+          const activity = lastActivityAt ?? runner.lastProgressAt;
+          if (activity === undefined || activity < (runner.startedAt ?? 0)) {
+            logRace(
+              options,
+              `race: engine '${engineName}' stuck (no data within ${firstByteMs}ms); aborting`
+            );
+            runner.abort();
+          }
+        }, firstByteMs);
+        // Don't keep the event loop alive just for this check.
+        (runner.stallTimer as any)?.unref?.();
+      }
         runner.promise = (async (): Promise<StandardSearchResult[]> => {
           const engineCtor = (this as any).get(engineName);
           const engineDefaults = engineCtor
@@ -344,6 +446,18 @@ export abstract class WebSearcher extends FetchSession {
             throw new Error(`Search engine not found: ${engineName}`);
           }
           runner.instance = instance;
+          // Listen for transport-level progress signals from the session's
+          // event bus (web-fetcher emits 'fetch:progress' as data arrives).
+          // Polled as a fallback by the firstByteMs stall check.
+          const eventBus = (instance as any).context?.eventBus;
+          if (eventBus && typeof eventBus.on === 'function') {
+            const onProgress = () => {
+              runner.lastProgressAt = Date.now();
+            };
+            eventBus.on('fetch:progress', onProgress);
+            runner.unsubscribeProgress = () =>
+              eventBus.off('fetch:progress', onProgress);
+          }
           if (runner.abortRequested) {
             // The race was decided while we were creating the instance.
             await instance.dispose().catch(() => { });
@@ -369,6 +483,7 @@ export abstract class WebSearcher extends FetchSession {
       runner.abort = async () => {
         if (runner.abortRequested) return;
         runner.abortRequested = true;
+        logRace(options, `race: engine '${runner.engineName}' aborted (superseded)`);
         const instance = runner.instance;
         if (!instance) return; // not created yet; the runner self-disposes
         try {
@@ -393,6 +508,9 @@ export abstract class WebSearcher extends FetchSession {
     let pendingCount = runners.length;
     let exitDecided = false;
     let graceTimer: ReturnType<typeof setTimeout> | undefined;
+    // Hard bound on the whole race; cleared together with the grace timer as
+    // soon as the exit is decided (see decideExit).
+    let raceTimer: ReturnType<typeof setTimeout> | undefined;
     // Set when the grace period expired with an empty pool: instead of
     // returning nothing, wait for the remaining engines to settle on their own
     // (bounded by their own timeouts). Returning zero results while competitors
@@ -421,11 +539,19 @@ export abstract class WebSearcher extends FetchSession {
         clearTimeout(graceTimer);
         graceTimer = undefined;
       }
+      if (raceTimer !== undefined) {
+        clearTimeout(raceTimer);
+        raceTimer = undefined;
+      }
       // Cancel every still-running loser. Their rejections are swallowed by the
       // runner itself (abort-like errors) and cleanup is idempotent.
       for (const runner of runners) {
         if (!runner.settled) {
           hasAbortedLosers = true;
+          if (runner.stallTimer !== undefined) {
+            clearTimeout(runner.stallTimer);
+            runner.stallTimer = undefined;
+          }
           runner.abort();
         }
       }
@@ -456,6 +582,12 @@ export abstract class WebSearcher extends FetchSession {
     const settle = (runner: RaceRunner, results?: StandardSearchResult[], error?: any) => {
       runner.settled = true;
       runner.succeeded = error === undefined;
+      if (runner.stallTimer !== undefined) {
+        clearTimeout(runner.stallTimer);
+        runner.stallTimer = undefined;
+      }
+      runner.unsubscribeProgress?.();
+      runner.unsubscribeProgress = undefined;
       // Its work is done: release the engine session immediately instead of
       // holding its browser/resources until the race ends. Without this, a
       // settled browser engine keeps its instance alive while queued engines
@@ -471,8 +603,14 @@ export abstract class WebSearcher extends FetchSession {
         if (!exitDecided && !isAbortLikeError(error)) {
           errors.push({ engineName: runner.engineName, error });
           console.warn(`[WebSearcher] Engine '${runner.engineName}' failed:`, error);
+        } else {
+          logRace(options, `race: engine '${runner.engineName}' aborted`);
         }
       } else {
+        logRace(
+          options,
+          `race: engine '${runner.engineName}' settled with ${results?.length ?? 0} result(s)`
+        );
         // Always keep completed results (even when the exit was already
         // decided): the final merge runs after the exit, ordered by engine
         // declaration, so nothing that completed successfully is lost.
@@ -530,6 +668,23 @@ export abstract class WebSearcher extends FetchSession {
       }
     };
 
+    if (raceTimeoutEnabled) {
+      raceTimer = setTimeout(() => {
+        raceTimer = undefined;
+        if (exitDecided) return;
+        const hanging = runners.filter(r => !r.settled).map(r => `'${r.engineName}'`);
+        logRace(
+          options,
+          `race: timed out after ${raceTimeoutMs}ms; aborting still-running engine(s): ${hanging.join(', ')}`
+        );
+        // Same exit path as the grace period: abort the laggards and return
+        // whatever has been collected so far (possibly nothing).
+        decideExit();
+      }, raceTimeoutMs);
+      // Don't keep the event loop alive just for the timeout itself.
+      (raceTimer as any)?.unref?.();
+    }
+
     pump();
 
     await exitPromise;
@@ -574,6 +729,8 @@ export abstract class WebSearcher extends FetchSession {
       // either.
       throw errors[0].error;
     }
+
+    logRace(options, `race: finished with ${collected.length} result(s)`);
 
     return collected.slice(0, limit);
   }

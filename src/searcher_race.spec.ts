@@ -565,3 +565,332 @@ describe('race strategy: concurrency limit', () => {
     expect(results).toHaveLength(5);
   });
 });
+
+describe('race strategy: raceTimeoutMs', () => {
+  /** Registers an engine whose search() never settles (a hung request). */
+  function registerHangingEngine(name: string) {
+    return registerMockEngine(name, () => new Promise<StandardSearchResult[]>(() => { }));
+  }
+
+  beforeEach(() => {
+    // @ts-ignore
+    delete WebSearcher._defaultOptions;
+  });
+
+  afterEach(() => {
+    // @ts-ignore
+    delete WebSearcher._defaultOptions;
+    ['ZA', 'ZB', 'ZC', 'ZD'].forEach(name => {
+      try { WebSearcher.unregister(name); } catch (e) { }
+    });
+    vi.restoreAllMocks();
+  });
+
+  it('should abort a hanging engine when the timeout elapses and return the results collected so far', async () => {
+    // ZA answers immediately with 3 items (below the limit); ZB hangs forever.
+    // The default grace (2s) would only cut ZB after it fires; the 300ms race
+    // timeout must decide the exit first and abort ZB.
+    registerMockEngine('ZA', async () => items('A', 3));
+    const hanging = registerHangingEngine('ZB');
+    const abortSpy = vi.spyOn(hanging.prototype as any, 'abort').mockResolvedValue(undefined);
+
+    const start = Date.now();
+    const results = await WebSearcher.search(['ZA', 'ZB'], 'query', {
+      limit: 10,
+      raceTimeoutMs: 300,
+      gracePeriodMs: 2000,
+    });
+    const elapsed = Date.now() - start;
+
+    expect(results).toHaveLength(3);
+    expect(results.every(r => r.url!.startsWith('http://A.com/'))).toBe(true);
+    // The hanging engine was cancelled instead of being awaited forever.
+    expect(abortSpy).toHaveBeenCalledTimes(1);
+    // It ended near the race timeout, not the 2s grace.
+    expect(elapsed).toBeGreaterThanOrEqual(250);
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it('should return an empty pool instead of hanging when every engine is stuck', async () => {
+    registerHangingEngine('ZA');
+    registerHangingEngine('ZB');
+
+    const start = Date.now();
+    const results = await WebSearcher.search(['ZA', 'ZB'], 'query', {
+      limit: 10,
+      raceTimeoutMs: 200,
+    });
+    const elapsed = Date.now() - start;
+
+    // Giving up on the race returns what we have (nothing) rather than throwing
+    // or waiting for the hung engines' own timeouts.
+    expect(results).toEqual([]);
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it('should not throw when the race times out even if an earlier engine failed', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
+    // ZA fails for real, ZB hangs. The timeout aborts ZB, so the exit is a
+    // deliberate give-up, not an all-engines-failed condition.
+    registerMockEngine('ZA', async () => {
+      throw new Error('boom-early');
+    });
+    registerHangingEngine('ZB');
+
+    const results = await WebSearcher.search(['ZA', 'ZB'], 'query', {
+      limit: 10,
+      raceTimeoutMs: 200,
+    });
+
+    expect(results).toEqual([]);
+    warnSpy.mockRestore();
+  });
+
+  it('should not bound the race when raceTimeoutMs is 0 or Infinity', async () => {
+    registerMockEngine('ZA', async () => items('A', 3));
+    registerHangingEngine('ZB');
+
+    // With the bound disabled, the grace period (100ms) is what ends the race.
+    const start = Date.now();
+    const results = await WebSearcher.search(['ZA', 'ZB'], 'query', {
+      limit: 10,
+      raceTimeoutMs: 0,
+      gracePeriodMs: 100,
+    });
+    const elapsed = Date.now() - start;
+
+    expect(results).toHaveLength(3);
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it('should respect raceTimeoutMs set via WebSearcher.defaultOptions', async () => {
+    WebSearcher.defaultOptions = { raceTimeoutMs: 300 };
+    registerHangingEngine('ZA');
+    registerMockEngine('ZB', async () => items('B', 3));
+
+    const start = Date.now();
+    const results = await WebSearcher.search(['ZA', 'ZB'], 'query', { limit: 10 });
+    const elapsed = Date.now() - start;
+
+    expect(results).toHaveLength(3);
+    expect(results.every(r => r.url!.startsWith('http://B.com/'))).toBe(true);
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it('should log race start/settle/timeout lines when debug includes "race"', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+    registerMockEngine('ZA', async () => items('A', 2));
+    registerHangingEngine('ZB');
+
+    await WebSearcher.search(['ZA', 'ZB'], 'query', {
+      limit: 5,
+      raceTimeoutMs: 200,
+      debug: 'race',
+    });
+
+    const lines = logSpy.mock.calls.map(c => c.slice(1).join(' '));
+    expect(lines.some(l => /race: engine 'ZA' started/.test(l))).toBe(true);
+    expect(lines.some(l => /race: engine 'ZA' settled with 2 result\(s\)/.test(l))).toBe(true);
+    expect(lines.some(l => /race: engine 'ZB' aborted \(superseded\)/.test(l))).toBe(true);
+    expect(lines.some(l => /race: timed out after 200ms; aborting still-running engine\(s\): 'ZB'/.test(l))).toBe(true);
+  });
+
+  it('should stay silent about the race when debug is off', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+    registerMockEngine('ZA', async () => items('A', 2));
+    registerMockEngine('ZB', async () => items('B', 2));
+
+    await WebSearcher.search(['ZA', 'ZB'], 'query', { limit: 10 });
+
+    const lines = logSpy.mock.calls.map(c => c.slice(1).join(' '));
+    expect(lines.some(l => /race:/.test(l))).toBe(false);
+  });
+});
+
+describe('race strategy: firstByteMs', () => {
+  /**
+   * Registers an engine that simulates the activity contract: optionally opts
+   * into tracking, optionally emits `fetch:progress` mid-flight, and either
+   * settles after a delay or hangs forever.
+   */
+  function registerActivityEngine(
+    name: string,
+    opts: {
+      tracked?: boolean;
+      reportAt?: number;
+      settleAt?: number;
+      results?: StandardSearchResult[];
+    }
+  ) {
+    class ActivityEngine extends WebSearcher {
+      get template() {
+        return { url: `http://${name}.com/?q=\${query}` };
+      }
+      async search(): Promise<StandardSearchResult[]> {
+        if (opts.tracked) (this as any).activityTracked = true;
+        if (opts.reportAt !== undefined) {
+          const timer = setTimeout(() => {
+            this.context.eventBus.emit('fetch:progress', { ts: Date.now() });
+          }, opts.reportAt);
+          (timer as any)?.unref?.();
+        }
+        if (opts.settleAt === undefined) {
+          return new Promise<StandardSearchResult[]>(() => { });
+        }
+        await new Promise((r) => setTimeout(r, opts.settleAt));
+        return opts.results ?? items(name, 3);
+      }
+    }
+    WebSearcher.register(ActivityEngine as any, name);
+    return ActivityEngine;
+  }
+
+  beforeEach(() => {
+    // @ts-ignore
+    delete WebSearcher._defaultOptions;
+  });
+
+  afterEach(() => {
+    // @ts-ignore
+    delete WebSearcher._defaultOptions;
+    ['FA', 'FB', 'FC'].forEach(name => {
+      try { WebSearcher.unregister(name); } catch (e) { }
+    });
+    vi.restoreAllMocks();
+  });
+
+  it('should abort a tracked engine that reports no data within firstByteMs', async () => {
+    // FA opts into tracking but never reports activity; FB is uninstrumented.
+    // firstByteMs (100ms) cuts FA early; the race timeout (400ms) ends it all.
+    const tracked = registerActivityEngine('FA', { tracked: true });
+    registerActivityEngine('FB', {});
+
+    const faAbortTimes: number[] = [];
+    vi.spyOn(tracked.prototype as any, 'abort').mockImplementation(async () => {
+      faAbortTimes.push(Date.now());
+    });
+
+    const start = Date.now();
+    const results = await WebSearcher.search(['FA', 'FB'], 'query', {
+      limit: 10,
+      firstByteMs: 100,
+      raceTimeoutMs: 400,
+    });
+    const elapsed = Date.now() - start;
+
+    expect(results).toEqual([]);
+    // FA was cancelled by the stall check, well before the race timeout.
+    expect(faAbortTimes).toHaveLength(1);
+    expect(faAbortTimes[0] - start).toBeLessThan(250);
+    expect(elapsed).toBeGreaterThanOrEqual(350);
+    expect(elapsed).toBeLessThan(1500);
+  });
+
+  it('should keep a tracked engine that reports data within firstByteMs', async () => {
+    // FA emits fetch:progress at 50ms and settles at 300ms — slower than
+    // firstByteMs (100ms) but actively receiving data, so it must not be cut.
+    const active = registerActivityEngine('FA', {
+      tracked: true,
+      reportAt: 50,
+      settleAt: 300,
+    });
+    const abortSpy = vi.spyOn(active.prototype as any, 'abort').mockResolvedValue(undefined);
+
+    const start = Date.now();
+    const results = await WebSearcher.search(['FA'], 'query', {
+      limit: 10,
+      firstByteMs: 100,
+      gracePeriodMs: 100,
+      raceTimeoutMs: 5000,
+    });
+    const elapsed = Date.now() - start;
+
+    expect(results).toHaveLength(3);
+    expect(results.every(r => r.url!.startsWith('http://FA.com/'))).toBe(true);
+    expect(abortSpy).not.toHaveBeenCalled();
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it('should not abort uninstrumented engines at firstByteMs', async () => {
+    // FA never claims activity tracking, so firstByteMs does not apply to it;
+    // it is only bounded by the race timeout (which it beats by settling).
+    const slow = registerActivityEngine('FA', { settleAt: 400 });
+    const abortSpy = vi.spyOn(slow.prototype as any, 'abort').mockResolvedValue(undefined);
+
+    const start = Date.now();
+    const results = await WebSearcher.search(['FA'], 'query', {
+      limit: 10,
+      firstByteMs: 100,
+      gracePeriodMs: 50,
+      raceTimeoutMs: 5000,
+    });
+    const elapsed = Date.now() - start;
+
+    expect(results).toHaveLength(3);
+    expect(abortSpy).not.toHaveBeenCalled();
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it('should be disabled by firstByteMs: 0 or Infinity', async () => {
+    const tracked = registerActivityEngine('FA', { tracked: true });
+    registerActivityEngine('FB', { settleAt: 50 });
+
+    const abortSpy = vi.spyOn(tracked.prototype as any, 'abort').mockResolvedValue(undefined);
+
+    const start = Date.now();
+    const results = await WebSearcher.search(['FA', 'FB'], 'query', {
+      limit: 10,
+      firstByteMs: 0,
+      raceTimeoutMs: 300,
+      gracePeriodMs: 2000,
+    });
+    const elapsed = Date.now() - start;
+
+    // Only the race timeout aborts FA (once); the stall check never fires.
+    expect(results).toHaveLength(3);
+    expect(abortSpy).toHaveBeenCalledTimes(1);
+    expect(elapsed).toBeLessThan(1500);
+  });
+
+  it('should respect firstByteMs set via WebSearcher.defaultOptions', async () => {
+    WebSearcher.defaultOptions = { firstByteMs: 100 };
+    const tracked = registerActivityEngine('FA', { tracked: true });
+    registerActivityEngine('FB', { settleAt: 50 });
+
+    const faAbortTimes: number[] = [];
+    vi.spyOn(tracked.prototype as any, 'abort').mockImplementation(async () => {
+      faAbortTimes.push(Date.now());
+    });
+
+    const start = Date.now();
+    const results = await WebSearcher.search(['FA', 'FB'], 'query', {
+      limit: 10,
+      raceTimeoutMs: 400,
+      gracePeriodMs: 2000,
+    });
+    const elapsed = Date.now() - start;
+
+    expect(results).toHaveLength(3);
+    expect(faAbortTimes).toHaveLength(1);
+    expect(faAbortTimes[0] - start).toBeLessThan(250);
+    expect(elapsed).toBeLessThan(1500);
+  });
+
+  it('should log the stall abort line when debug includes "race"', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+    registerActivityEngine('FA', { tracked: true });
+    registerActivityEngine('FB', { tracked: true });
+
+    await WebSearcher.search(['FA', 'FB'], 'query', {
+      limit: 10,
+      firstByteMs: 100,
+      raceTimeoutMs: 300,
+      debug: 'race',
+    });
+
+    const lines = logSpy.mock.calls.map(c => c.slice(1).join(' '));
+    expect(
+      lines.some(l => /race: engine 'FA' stuck \(no data within 100ms\); aborting/.test(l))
+    ).toBe(true);
+  });
+});

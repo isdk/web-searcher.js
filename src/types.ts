@@ -241,6 +241,51 @@ export interface SearchOptions {
   gracePeriodMs?: number;
 
   /**
+   * Time to first byte / first progress signal in milliseconds for the `'race'`
+   * strategy.
+   *
+   * This distinguishes a *hung* engine (connected — or still connecting — but
+   * with no data arriving) from a *slow but healthy* one (actively downloading).
+   * An engine that has started but reported no activity within this window is
+   * treated as stuck on its connection and aborted, so the race can continue
+   * with the remaining engines; an engine that is actively receiving data keeps
+   * running up to the hard race timeout ({@link raceTimeoutMs}).
+   *
+   * **Opt-in contract** (so that uninstrumented engines are never cut early by
+   * this option): the engine must signal that it tracks activity, either
+   *
+   * - by setting `activityTracked = true` on itself (or on `context.engine`) and
+   *   emitting a `fetch:progress` event on the session event bus as data arrives
+   *   (`{ ts?: number }` payload), or
+   * - by maintaining a live `lastActivityAt` timestamp (epoch ms) on itself (or
+   *   on `context.engine`).
+   *
+   * Engines without any such signal stay bounded only by `raceTimeoutMs`.
+   *
+   * The timer starts when the engine starts. `0` or `Infinity` disables the
+   * check.
+   * @default 10000
+   */
+  firstByteMs?: number;
+
+  /**
+   * Hard time limit in milliseconds for a multi-engine `'race'` search (see
+   * {@link strategy}).
+   *
+   * The grace period ({@link gracePeriodMs}) only bounds how long the race waits
+   * *after the first engine settles*. When no engine has produced any result,
+   * the race keeps waiting for the remaining engines to settle on their own —
+   * which, for an engine whose request simply hangs, means waiting for its full
+   * underlying fetch timeout (e.g. Crawlee's 300s request-handler timeout).
+   * This option caps that worst case: when it elapses, still-running engines are
+   * aborted and whatever has been collected so far is returned (possibly empty).
+   *
+   * The timer starts when the race begins. `0` or `Infinity` disables the bound.
+   * @default 30000
+   */
+  raceTimeoutMs?: number;
+
+  /**
    * Maximum number of engines searched simultaneously under the `'race'`
    * strategy (see {@link strategy}). Extra engines wait in declaration order
    * for a free slot. Has no effect on `'fallback'`.

@@ -45,6 +45,8 @@ When you provide an array of engine names, `WebSearcher.search` runs them **conc
 
 - **Race**: Every engine searches with the full `limit`. The first engine to reach the `limit` wins; the remaining engines are aborted immediately (in-flight navigation is cancelled, not waited on).
 - **Grace Period**: If the settled engines do not fill the `limit`, the searcher waits up to `gracePeriodMs` (default `2000`) for the others; later arrivals are merged in. If the pool is still empty when the grace expires, it keeps waiting for the remaining engines instead of returning nothing.
+- **Hard Timeout**: `raceTimeoutMs` (default `30000`) bounds the *whole* race. The grace period only caps the wait *after* the first engine settles; with an empty pool, the race would otherwise wait for a hung engine until its own (possibly minutes-long) fetch timeout fires. When the hard timeout elapses, still-running engines are aborted and whatever has been collected so far is returned (possibly empty).
+- **First-Byte Check**: `firstByteMs` (default `10000`) distinguishes a *hung* engine (connected but no data arriving) from a *slow but healthy* one (actively downloading). An engine that has started but reported no activity within this window is aborted so the race can continue, while an engine that is receiving data keeps running up to the hard timeout. Engines opt into this by reporting activity (a `lastActivityAt` timestamp / `fetch:progress` events, as the `http`/`browser` fetcher engines do); engines without a signal stay bounded by `raceTimeoutMs` only. `0` / `Infinity` disables the check.
 - **Bounded Concurrency**: `concurrency` caps how many engines run at once (default: unlimited). Queued engines wait in declaration order and are never started once the race is decided.
 - **Deterministic Order**: Results are merged in engine declaration order and de-duplicated by `url`, mirroring the sequential order regardless of which engine answered first.
 - **Failover Semantics**: Engines that fail are skipped (a warning is logged); only when every engine genuinely fails is the first error thrown.
@@ -60,7 +62,15 @@ const sequential = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open
   limit: 20,
   strategy: 'fallback',
 });
+
+// Cap the worst case: never wait longer than 15s for a hung engine
+const bounded = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open source', {
+  limit: 20,
+  raceTimeoutMs: 15000,
+});
 ```
+
+> **Tip**: set the fetcher `debug` option to `true` or `'race'` to log race lines (`engine 'X' started`, `settled with N result(s)`, `aborted (superseded)`, `timed out after Xms`) — the fastest way to see which engines actually ran.
 
 > **Note**: `fillLimit: false` still means "stop after the first successful engine" — under the race strategy the chain is truncated at the first engine (in declaration order) carrying that flag, exactly like the sequential path.
 
@@ -358,6 +368,8 @@ const results = await google.search('open source', {
 | `strategy` | `'race'` \| `'fallback'` | How multiple engines are executed. `'race'` (default) searches concurrently and returns as soon as the `limit` is reached; `'fallback'` tries engines one by one in order. |
 | `gracePeriodMs` | `number` | Grace period in milliseconds for the `'race'` strategy after the first engines settle without reaching the `limit` (default: `2000`). |
 | `concurrency` | `number` | Maximum number of engines searched simultaneously under the `'race'` strategy. Extra engines wait in declaration order. Default: unlimited. |
+| `raceTimeoutMs` | `number` | Hard time limit (ms) for a `'race'` search. When it elapses, still-running engines are aborted and the pool collected so far is returned. Caps the worst case where a hung engine would otherwise hold the race until its own fetch timeout. `0` / `Infinity` disables it. Default: `30000`. |
+| `firstByteMs` | `number` | Time-to-first-byte / activity budget (ms) for the `'race'` strategy. An engine that starts but reports no received data within this window is treated as stuck on its connection and aborted; an engine actively receiving data keeps running up to `raceTimeoutMs`. Only applies to engines that report activity (`lastActivityAt` / `fetch:progress`), e.g. the built-in `http`/`browser` fetcher engines. `0` / `Infinity` disables it. Default: `10000`. |
 | `fillLimit` | `boolean` | If `true` (default), continues to subsequent engines when the current engine returns fewer results than `limit`. Under `'race'`, the chain is truncated at the first engine (in declaration order) with `fillLimit: false`. |
 | `startPage` | `number` | The page index to start from. Useful when delegating pagination across different sessions. Default: `0`. |
 | `validator` | `function` | Custom callback to validate fetched results. If it returns `false`, triggers failover/retry. Signature: `(results, context) => boolean \| Promise<boolean>`. |

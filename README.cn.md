@@ -45,6 +45,8 @@ console.log(results);
 
 - **并发竞争**：每个引擎都以完整的 `limit` 搜索。第一个凑满 `limit` 的引擎胜出，其余引擎立即被中止（进行中的导航会被取消，而不是等待超时）。
 - **宽限期**：如果先完成的引擎没有凑满 `limit`，搜索器最多等待 `gracePeriodMs`（默认 `2000`）让其余引擎补足；期间到达的结果会被合并。若宽限期到点时结果仍为空，则继续等待剩余引擎，而不是空手返回。
+- **硬性超时**：`raceTimeoutMs`（默认 `30000`）为整场竞赛设置时间上限。宽限期只约束“第一个引擎 settle 之后”的等待；若结果池为空，竞赛原本会一直等某个挂起的引擎，直到它自己的抓取超时（可能长达数分钟）触发。硬性超时到点时，仍在运行的引擎会被中止，并返回已收集的结果（可能为空）。
+- **首字节判活**：`firstByteMs`（默认 `10000`）区分「卡死的引擎」（已连接但没有数据到达）与「慢但健康的引擎」（正在下载数据）。引擎启动后在该时间窗口内未上报任何活动即被中止，竞赛继续其它引擎；正在接收数据的引擎则继续运行到硬性超时。该检查只对主动上报活动的引擎生效（`lastActivityAt` 时间戳 / `fetch:progress` 事件，内置的 `http`/`browser` 抓取引擎均已实现）；无信号的引擎仍只受 `raceTimeoutMs` 约束。`0` / `Infinity` 表示禁用。
 - **并发度上限**：`concurrency` 限制同时运行的引擎数量（默认不限制）。排队的引擎按声明顺序等待，竞赛决出胜负后不再启动。
 - **确定性顺序**：结果按引擎声明顺序合并并基于 `url` 去重，无论哪个引擎先答完，顺序都与串行一致。
 - **容错语义**：失败的引擎会被跳过（记录警告）；只有当所有引擎都真实失败时才抛出第一个错误。
@@ -60,7 +62,15 @@ const sequential = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open
   limit: 20,
   strategy: 'fallback',
 });
+
+// 兜底最坏情况：绝不为一个挂起的引擎等超过 15 秒
+const bounded = await WebSearcher.search(['Google', 'Bing', 'SearXNG'], 'open source', {
+  limit: 20,
+  raceTimeoutMs: 15000,
+});
 ```
+
+> **小技巧**：将 fetcher 的 `debug` 选项设为 `true` 或 `'race'`，即可输出竞赛日志（`engine 'X' started`、`settled with N result(s)`、`aborted (superseded)`、`timed out after Xms`），这是排查“哪些引擎真正跑过”最快的方式。
 
 > **注意**：`fillLimit: false` 仍表示“第一个成功的引擎之后即停止”——在 race 策略下，链条会截断在声明顺序中第一个携带该标志的引擎处，与串行行为完全一致。
 
@@ -358,6 +368,8 @@ const results = await google.search('open source', {
 | `strategy` | `'race'` \| `'fallback'` | 多引擎的执行方式。`'race'`（默认）并发搜索，凑满 `limit` 立即返回；`'fallback'` 按顺序逐个尝试引擎。 |
 | `gracePeriodMs` | `number` | `'race'` 策略下，先完成的引擎未凑满 `limit` 时的宽限期（毫秒）。默认值：`2000`。 |
 | `concurrency` | `number` | `'race'` 策略下同时搜索的引擎数量上限。多余的引擎按声明顺序排队等待。默认不限制。 |
+| `raceTimeoutMs` | `number` | `'race'` 搜索的硬性时间上限（毫秒）。到点时中止仍在运行的引擎，并返回已收集的结果池。用于兜底“某引擎挂起导致竞赛一直等到其自身抓取超时”的最坏情况。`0` / `Infinity` 表示禁用。默认值：`30000`。 |
+| `firstByteMs` | `number` | `'race'` 策略的首字节/活动预算（毫秒）。引擎启动后在该窗口内未上报「已收到数据」即视为卡在连接上而被中止；正在接收数据的引擎继续运行到 `raceTimeoutMs`。仅对上报活动的引擎（`lastActivityAt` / `fetch:progress`，如内置 `http`/`browser` 抓取引擎）生效。`0` / `Infinity` 表示禁用。默认值：`10000`。 |
 | `fillLimit` | `boolean` | 设为 `true`（默认）时，当前引擎返回结果不足 `limit` 会继续尝试后续引擎。在 `'race'` 下，链条截断于声明顺序中第一个 `fillLimit: false` 的引擎。 |
 | `startPage` | `number` | 分页起始页索引。适用于跨会话委托分页场景。默认值：`0`。 |
 | `validator` | `function` | 自定义回调函数验证抓取结果。返回 `false` 时触发故障转移/重试。签名：`(results, context) => boolean \| Promise<boolean>` |
